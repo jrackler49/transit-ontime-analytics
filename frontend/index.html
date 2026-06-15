@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transit On-Time Analytics — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#003366;--navy-mid:#004080;--gold:#C8A217;--bg:#f2f5fb;--surface:#fff;--border:#d4dcea;--text:#0f1e3a;--text-muted:#6678a0;--red:#b83232;--red-faint:#fdf0f0;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+header{background:var(--navy);border-bottom:4px solid var(--gold);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:68px;box-shadow:0 2px 16px rgba(0,30,70,.3);}
+.hd-l{display:flex;align-items:center;gap:18px;}
+.hd-icon{width:44px;height:44px;background:rgba(200,162,23,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
+.hd-div{width:1px;height:32px;background:rgba(200,162,23,.4);margin:0 4px;}
+.hd-title{font-family:'Montserrat',sans-serif;font-size:.9rem;font-weight:800;color:#fff;letter-spacing:.04em;line-height:1.25;}
+.hd-title .sub{font-size:.65rem;font-weight:500;color:rgba(200,162,23,.85);display:block;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.hd-credit{font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:600;color:rgba(200,162,23,.7);letter-spacing:.05em;}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:440px;box-shadow:0 4px 32px rgba(0,30,70,.1);}
+.login-icon{width:56px;height:56px;background:var(--navy);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 20px;}
+h1{font-family:'Montserrat',sans-serif;font-size:1.3rem;font-weight:800;color:var(--navy);text-align:center;margin-bottom:6px;}
+.sub{text-align:center;color:var(--text-muted);font-size:.85rem;margin-bottom:28px;}
+.demo-box{background:#eff4fd;border:1px solid rgba(26,86,192,.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.8rem;color:#1a56c0;line-height:1.6;}
+.demo-box strong{display:block;margin-bottom:4px;font-family:'Montserrat',sans-serif;font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
+label{font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--navy);}
+input{background:#f2f5fb;border:1.5px solid var(--border);color:var(--text);padding:11px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.95rem;outline:none;transition:border-color .15s;width:100%;}
+input:focus{border-color:var(--navy);background:#fff;}
+.btn{background:var(--navy);color:#fff;border:none;padding:13px;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;width:100%;transition:background .2s;margin-top:8px;}
+.btn:hover{background:var(--navy-mid);}
+.btn:disabled{opacity:.5;cursor:default;}
+.error{background:var(--red-faint);border:1px solid rgba(184,50,50,.3);color:var(--red);border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:16px;display:none;}
+.error.show{display:block;}
+footer{text-align:center;padding:20px;font-size:.72rem;color:var(--text-muted);}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd-l">
+    <div class="hd-icon">🚌</div>
+    <div class="hd-div"></div>
+    <div class="hd-title">Transit On-Time Analytics<span class="sub">Route Performance Portal</span></div>
+  </div>
+  <div class="hd-credit">Developed by Jeff Rackler</div>
+</header>
+<main>
+  <div class="login-card">
+    <div class="login-icon">📊</div>
+    <h1>Sign In</h1>
+    <p class="sub">Metro School District · Transportation Portal</p>
+    <div class="demo-box">
+      <strong>📌 Portfolio Demo</strong>
+      Username: <strong>admin</strong> &nbsp;·&nbsp; Password: <strong>demo2024!</strong><br>
+      Pre-loaded with Metro School District sample data.
+    </div>
+    <div class="error" id="err"></div>
+    <form onsubmit="doLogin(event)">
+      <div class="fg">
+        <label>Username</label>
+        <input type="text" id="username" autocomplete="username" required placeholder="Enter your username" value="admin">
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input type="password" id="password" autocomplete="current-password" required placeholder="Enter your password" value="demo2024!">
+      </div>
+      <button class="btn" type="submit" id="login-btn">Sign In</button>
+    </form>
+  </div>
+</main>
+<footer>Transit On-Time Analytics · Portfolio Project · Developed by Jeff Rackler · Built on Cloudflare Workers + R2</footer>
+
+<script>
+const API = window.API_BASE || 'https://YOUR_WORKER_URL.workers.dev';
+
+const token = sessionStorage.getItem('sisd_token');
+if (token) {
+  fetch(API + '/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => r.ok ? window.location.href = '/dashboard.html' : null)
+    .catch(() => {});
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('err');
+  errEl.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    const res = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Sign in failed.';
+      errEl.classList.add('show');
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+    sessionStorage.setItem('sisd_token', data.token);
+    sessionStorage.setItem('sisd_user', JSON.stringify(data.user));
+    window.location.href = '/dashboard.html';
+  } catch (err) {
+    errEl.textContent = 'Could not connect to server. Please try again.';
+    errEl.classList.add('show');
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+</script>
+</body>
+</html>

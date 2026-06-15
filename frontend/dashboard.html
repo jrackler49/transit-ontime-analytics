@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transit On-Time Analytics Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="/auth.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#003366;--navy-mid:#004080;--navy-faint:#f0f4fa;
+  --gold:#C8A217;--gold-light:#e8bb1a;
+  --bg:#f2f5fb;--surface:#fff;--surface2:#edf1f9;--border:#d4dcea;
+  --text:#0f1e3a;--text-mid:#3a4f72;--text-muted:#6678a0;
+  --green:#1a7f4b;--green-faint:#edf7f2;
+  --amber:#b87f00;--amber-faint:#fef8ec;
+  --orange:#c05c00;--orange-faint:#fff0e6;
+  --red:#b83232;--red-faint:#fdf0f0;
+  --blue:#1a56c0;--blue-faint:#eff4fd;
+  --purple:#6b35b8;--purple-faint:#f3eeff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;}
+
+/* HEADER */
+header{background:var(--navy);border-bottom:4px solid var(--gold);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:68px;position:sticky;top:0;z-index:300;box-shadow:0 2px 16px rgba(0,30,70,.3);}
+.hd-l{display:flex;align-items:center;gap:18px;}
+.logo{height:44px;filter:brightness(0) invert(1);}
+.hd-div{width:1px;height:32px;background:rgba(200,162,23,.4);}
+.hd-title{font-family:'Montserrat',sans-serif;font-size:.9rem;font-weight:800;color:#fff;letter-spacing:.04em;line-height:1.25;}
+.hd-title .sub{font-size:.65rem;font-weight:500;color:rgba(200,162,23,.85);display:block;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.hd-r{display:flex;gap:12px;align-items:center;}
+.hd-user{font-family:'Montserrat',sans-serif;font-size:.7rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.05em;}
+.hd-role{font-size:.6rem;background:rgba(200,162,23,.25);color:var(--gold);padding:3px 9px;border-radius:4px;font-family:'Montserrat',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
+.hd-badge{font-family:'DM Mono',monospace;font-size:.62rem;color:rgba(255,255,255,.45);background:rgba(255,255,255,.07);padding:4px 10px;border-radius:4px;letter-spacing:.04em;white-space:nowrap;transition:all .3s;}
+.hd-badge.ok{color:rgba(180,255,200,.9);background:rgba(26,127,75,.3);}
+.hd-btns{display:flex;gap:8px;}
+.hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.8);padding:6px 14px;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.hd-btn:hover{background:rgba(255,255,255,.2);color:#fff;}
+.hd-btn.danger{border-color:rgba(184,50,50,.4);color:rgba(255,180,180,.8);}
+.hd-btn.danger:hover{background:rgba(184,50,50,.3);color:#fff;}
+
+/* DATA STATUS BAR */
+.status-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 32px;display:flex;align-items:center;gap:16px;font-size:.72rem;}
+.status-item{display:flex;align-items:center;gap:6px;color:var(--text-muted);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--border);}
+.status-dot.ok{background:var(--green);}
+.status-dot.warn{background:var(--amber);}
+.status-lbl{font-family:'DM Mono',monospace;}
+.status-sep{width:1px;height:14px;background:var(--border);}
+.refresh-btn{margin-left:auto;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 12px;border-radius:5px;font-family:'Montserrat',sans-serif;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:all .15s;}
+.refresh-btn:hover{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+main{padding:24px 32px;max-width:1600px;margin:0 auto;}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:5px;width:fit-content;box-shadow:0 1px 5px rgba(0,30,70,.07);}
+.tbtn{padding:9px 26px;border:none;border-radius:7px;font-family:'Montserrat',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;color:var(--text-muted);background:transparent;transition:all .2s;}
+.tbtn:hover:not(.on){background:var(--surface2);color:var(--navy);}
+.tbtn.on{background:var(--navy);color:#fff;box-shadow:0 2px 8px rgba(0,51,102,.25);}
+.tbtn.admin-only{display:none;}
+.tbtn.admin-only.visible{display:block;}
+.page{display:none;}.page.on{display:block;}
+
+/* CARDS & FORMS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;box-shadow:0 1px 6px rgba(0,30,70,.06);margin-bottom:20px;}
+.ctitle{font-family:'Montserrat',sans-serif;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--navy);margin-bottom:16px;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.fg label{font-family:'Montserrat',sans-serif;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--navy);}
+input[type=text],input[type=password],input[type=time],input[type=date],select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;width:100%;transition:border-color .15s;}
+input:focus,select:focus{border-color:var(--navy);background:#fff;}
+.btn-primary{background:var(--navy);color:#fff;border:none;padding:10px 22px;border-radius:7px;font-family:'Montserrat',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;transition:background .2s;}
+.btn-primary:hover{background:var(--navy-mid);}
+.btn-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--navy);padding:9px 18px;border-radius:7px;font-family:'Montserrat',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-secondary:hover{background:var(--navy);color:#fff;}
+.btn-danger{background:var(--red-faint);border:1px solid rgba(184,50,50,.3);color:var(--red);padding:7px 14px;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-danger:hover{background:var(--red);color:#fff;}
+.sep{height:1px;background:var(--border);margin:18px 0;}
+
+/* ── UPLOAD (ADMIN) ── */
+.ugrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.dz{border:2px dashed var(--border);border-radius:10px;padding:22px 16px;text-align:center;transition:all .2s;background:var(--surface2);}
+.dz.clickable{cursor:pointer;}
+.dz.clickable:hover,.dz.over{border-color:var(--navy);background:var(--navy-faint);}
+.dz.done{border-style:solid;border-color:var(--green);background:var(--green-faint);}
+.dz-icon{font-size:1.6rem;margin-bottom:6px;}
+.dz-lbl{font-family:'Montserrat',sans-serif;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.ci{color:var(--blue);}.co{color:var(--green);}.cr{color:var(--purple);}.cct{color:var(--orange);}
+.dz-hint{font-size:.7rem;color:var(--text-muted);margin-bottom:10px;line-height:1.5;}
+.up-btn{background:var(--navy);color:#fff;border:none;padding:7px 16px;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:.68rem;font-weight:700;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:background .2s;}
+.up-btn:hover{background:var(--navy-mid);}
+.dz.done .up-btn{background:var(--green);}
+.liinfo{margin-top:8px;font-size:.68rem;color:var(--green);font-family:'DM Mono',monospace;line-height:1.5;}
+.liinfo.warn{color:var(--amber);}
+input[type=file]{display:none;}
+.upload-progress{height:3px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden;display:none;}
+.upload-progress-bar{height:100%;background:var(--green);width:0;transition:width .3s;}
+
+/* ── USERS (ADMIN) ── */
+.users-layout{display:grid;grid-template-columns:340px 1fr;gap:20px;}
+.user-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;transition:all .15s;}
+.user-card:hover{border-color:var(--navy);box-shadow:0 2px 8px rgba(0,30,70,.08);}
+.user-info{display:flex;align-items:center;gap:12px;}
+.user-avatar{width:36px;height:36px;border-radius:9px;background:var(--navy-faint);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:var(--navy);font-family:'Montserrat',sans-serif;flex-shrink:0;}
+.user-avatar.admin{background:rgba(200,162,23,.15);color:var(--gold);}
+.user-name{font-weight:600;font-size:.85rem;color:var(--text);}
+.user-username{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--text-muted);}
+.user-acts{display:flex;gap:6px;align-items:center;}
+.badge{display:inline-flex;padding:3px 8px;border-radius:10px;font-family:'Montserrat',sans-serif;font-size:.57rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;}
+.b-admin{background:rgba(200,162,23,.15);color:var(--amber);}
+.b-viewer{background:var(--blue-faint);color:var(--blue);}
+.b-inactive{background:var(--surface2);color:var(--text-muted);}
+.b-green{background:var(--green-faint);color:var(--green);}
+.b-red{background:var(--red-faint);color:var(--red);}
+.b-blue{background:var(--blue-faint);color:var(--blue);}
+.b-navy{background:var(--navy-faint);color:var(--navy);}
+.b-purple{background:var(--purple-faint);color:var(--purple);}
+.b-amber{background:var(--amber-faint);color:var(--amber);}
+.b-orange{background:var(--orange-faint);color:var(--orange);}
+.b-gray{background:var(--surface2);color:var(--text-muted);}
+.b-gs{background:var(--green-faint);color:var(--green);}
+.b-as{background:var(--amber-faint);color:var(--amber);}
+.b-rs{background:var(--red-faint);color:var(--red);}
+
+/* GROUPS */
+.gl{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start;}
+.cpwrap{position:relative;}
+.schips{display:flex;flex-wrap:wrap;gap:5px;min-height:38px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:border-color .15s;}
+.schips:hover{border-color:var(--navy);}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--navy);color:#fff;padding:3px 10px;border-radius:20px;font-size:.68rem;font-family:'Montserrat',sans-serif;font-weight:700;}
+.chip-x{background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:.85rem;line-height:1;padding:0 2px;}
+.chip-x:hover{color:#fff;}
+.cdd{background:#fff;border:1px solid var(--border);border-radius:8px;max-height:240px;overflow-y:auto;padding:6px;box-shadow:0 4px 20px rgba(0,30,70,.12);display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:200;}
+.cdd.open{display:block;}
+.cdd-top{padding:4px 4px 8px;display:flex;gap:6px;align-items:center;}
+.cdd-top input{flex:1;}
+.type-btns{display:flex;gap:4px;}
+.tbadge-btn{border:1px solid var(--border);background:var(--surface2);border-radius:5px;font-family:'Montserrat',sans-serif;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.tbadge-btn:hover{background:var(--navy);color:#fff;border-color:var(--navy);}
+.tbadge-btn.es{color:var(--blue);border-color:rgba(26,86,192,.3);}
+.tbadge-btn.ms{color:var(--amber);border-color:rgba(184,127,0,.3);}
+.tbadge-btn.hs{color:var(--green);border-color:rgba(26,127,75,.3);}
+.copt{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:background .1s;user-select:none;}
+.copt:hover{background:var(--navy-faint);}
+.copt input[type=checkbox]{width:14px;height:14px;accent-color:var(--navy);cursor:pointer;flex-shrink:0;}
+.co-lbl{font-size:.82rem;color:var(--text);flex:1;}
+.co-grp{font-size:.63rem;color:var(--text-muted);font-style:italic;}
+.cobdg{font-family:'DM Mono',monospace;font-size:.6rem;padding:2px 6px;border-radius:4px;}
+.t-ES{background:var(--blue-faint);color:var(--blue);}
+.t-MS{background:var(--amber-faint);color:var(--amber);}
+.t-HS{background:var(--green-faint);color:var(--green);}
+.t-x{background:var(--surface2);color:var(--text-muted);}
+.conflict-box{background:var(--red-faint);border:1px solid rgba(184,50,50,.3);border-radius:7px;padding:10px 14px;font-size:.75rem;color:var(--red);margin-bottom:12px;display:none;}
+.conflict-box.show{display:block;}
+.wr{display:grid;grid-template-columns:1fr 80px 110px 34px;gap:8px;align-items:end;margin-bottom:8px;}
+.add-w{background:var(--navy-faint);color:var(--navy);border:none;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;cursor:pointer;transition:all .15s;margin-top:4px;}
+.add-w:hover{background:var(--navy);color:#fff;}
+.rm-w{background:var(--red-faint);color:var(--red);border:none;border-radius:6px;padding:0;width:34px;height:36px;cursor:pointer;font-size:.85rem;transition:all .15s;}
+.rm-w:hover{background:var(--red);color:#fff;}
+.sv-btn{background:var(--navy);color:#fff;border:none;padding:10px 24px;border-radius:7px;font-family:'Montserrat',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;transition:background .2s;width:100%;}
+.sv-btn:hover{background:var(--navy-mid);}
+.cx-btn{display:none;margin-top:8px;width:100%;background:var(--surface2);border:1px solid var(--border);padding:9px;border-radius:7px;font-family:'Montserrat',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;color:var(--text-mid);}
+.gc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;transition:all .15s;margin-bottom:10px;}
+.gc:hover{border-color:var(--navy);box-shadow:0 2px 12px rgba(0,30,70,.1);}
+.gc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.gc-name{font-family:'Montserrat',sans-serif;font-size:.92rem;font-weight:800;color:var(--navy);}
+.gc-acts{display:flex;gap:6px;}
+.gc-b{border:none;cursor:pointer;border-radius:5px;font-family:'Montserrat',sans-serif;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 10px;transition:all .15s;}
+.gc-ed{background:var(--navy-faint);color:var(--navy);}.gc-ed:hover{background:var(--navy);color:#fff;}
+.gc-dl{background:var(--red-faint);color:var(--red);}.gc-dl:hover{background:var(--red);color:#fff;}
+.gc-camps{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;}
+.gcc{background:var(--surface2);border:1px solid var(--border);padding:2px 9px;border-radius:12px;font-size:.68rem;color:var(--text-mid);}
+.gc-meta{font-size:.65rem;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
+.gc-ws{display:flex;flex-wrap:wrap;gap:5px;}
+.gcw{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-family:'DM Mono',monospace;font-size:.63rem;}
+.gwi{background:var(--blue-faint);color:var(--blue);}
+.gwo{background:var(--green-faint);color:var(--green);}
+.gwb{background:var(--surface2);color:var(--text-mid);}
+.empty-st{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:.85rem;}
+.readonly-notice{background:var(--amber-faint);border:1px solid rgba(184,127,0,.2);border-radius:8px;padding:10px 14px;font-size:.78rem;color:var(--amber);margin-bottom:16px;}
+
+/* DASHBOARD */
+.dtb{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;}
+.dtb .fg{min-width:130px;margin-bottom:0;}
+.run-btn{background:var(--gold);color:var(--navy);border:none;padding:10px 24px;border-radius:7px;font-family:'Montserrat',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;transition:all .2s;align-self:flex-end;white-space:nowrap;}
+.run-btn:hover{background:var(--gold-light);}
+.exp-btns{display:flex;gap:8px;align-self:flex-end;}
+.exp-btn{background:var(--surface);border:1px solid var(--border);color:var(--navy);padding:10px 14px;border-radius:7px;font-family:'Montserrat',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.exp-btn:hover{background:var(--navy);color:#fff;}
+.dirtog{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px;width:fit-content;margin-bottom:18px;}
+.dtbtn{padding:8px 24px;border:none;border-radius:5px;font-family:'Montserrat',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;color:var(--text-muted);background:transparent;transition:all .15s;}
+.dtbtn.ia{background:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(26,86,192,.25);}
+.dtbtn.oa{background:var(--green);color:#fff;box-shadow:0 2px 6px rgba(26,127,75,.25);}
+.kstrip{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;flex:1;min-width:130px;box-shadow:0 1px 5px rgba(0,30,70,.06);}
+.kpi.kn{border-left:4px solid var(--navy);}
+.kpi.kb{border-left:4px solid var(--blue);}
+.kpi.kg{border-left:4px solid var(--green);}
+.kpi.ka{border-left:4px solid var(--amber);}
+.kpi.ko{border-left:4px solid var(--orange);}
+.kpi.kr{border-left:4px solid var(--red);}
+.kpi.kp{border-left:4px solid var(--purple);}
+.kl{font-family:'Montserrat',sans-serif;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:4px;}
+.kv{font-family:'DM Mono',monospace;font-size:1.45rem;font-weight:500;color:var(--text);}
+.ks{font-size:.66rem;color:var(--text-muted);margin-top:2px;}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.ccard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 1px 6px rgba(0,30,70,.06);}
+.chead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;}
+.chtitle{font-family:'Montserrat',sans-serif;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--navy);}
+.chsub{font-size:.65rem;color:var(--text-muted);}
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;font-family:'Montserrat',sans-serif;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{background:var(--navy-mid);}
+td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:hover td{background:var(--navy-faint);}
+.num{font-family:'DM Mono',monospace;}
+.mbar{height:6px;background:var(--surface2);border-radius:3px;width:68px;overflow:hidden;display:inline-block;vertical-align:middle;}
+.mf{height:100%;border-radius:3px;}
+.fg_{background:var(--green);}.fa_{background:var(--amber);}.fr_{background:var(--red);}
+.bcell{display:flex;align-items:center;gap:7px;}
+.pag{display:flex;align-items:center;justify-content:space-between;padding:12px 0 0;font-size:.78rem;color:var(--text-muted);}
+.pgbs{display:flex;gap:6px;}
+.pgb{background:var(--surface2);border:1px solid var(--border);color:var(--navy);padding:5px 14px;border-radius:6px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:700;}
+.pgb:disabled{opacity:.35;cursor:default;}
+.pgb:not(:disabled):hover{background:var(--navy);color:#fff;}
+.erow td{text-align:center;color:var(--text-muted);padding:36px!important;font-style:italic;}
+.nodata{text-align:center;padding:64px 20px;color:var(--text-muted);}
+.nd-icon{font-size:2.8rem;margin-bottom:14px;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,20,50,.55);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{background:#fff;border-radius:14px;padding:32px;width:100%;max-width:460px;box-shadow:0 8px 48px rgba(0,30,70,.2);transform:translateY(10px);transition:transform .2s;}
+.modal-bg.open .modal{transform:translateY(0);}
+.modal-title{font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:800;color:var(--navy);margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+/* TOAST */
+.step-ind{transition:background .15s;}.step-ind:hover{background:var(--navy-faint);}.step-ind.active{background:var(--navy-faint);border-bottom:3px solid var(--navy);}.step-ind.complete{background:var(--green-faint);}
+.ct-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.ct-table th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;font-family:'Montserrat',sans-serif;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
+.ct-table td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.ct-table tr:hover td{background:var(--navy-faint);}
+.ct-select{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--text);outline:none;cursor:pointer;}
+.ct-select:focus{border-color:var(--navy);}
+.ct-select.es{background:var(--blue-faint);color:var(--blue);border-color:rgba(26,86,192,.3);}
+.ct-select.ms{background:var(--amber-faint);color:var(--amber);border-color:rgba(184,127,0,.3);}
+.ct-select.hs{background:var(--green-faint);color:var(--green);border-color:rgba(26,127,75,.3);}
+.ct-select.other{background:var(--surface2);color:var(--text-muted);}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 20px;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:.72rem;font-weight:700;z-index:999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none;max-width:380px;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.ok{background:var(--green);}.toast.err{background:var(--red);}.toast.warn{background:var(--amber);}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:400;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-overlay p{font-family:'Montserrat',sans-serif;font-size:.78rem;font-weight:700;color:var(--navy);letter-spacing:.06em;text-transform:uppercase;}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <p>Loading Portal…</p>
+</div>
+
+<header>
+  <div class="hd-l">
+    <img src="https://ui-avatars.com/api/?name=Transit+Analytics&background=003366&color=C8A217&bold=true&size=128" alt="Metro School District" class="logo" onerror="this.style.display='none'">
+    <div class="hd-div"></div>
+    <div class="hd-title">Transit On-Time Analytics<span class="sub">On-Time Analytics</span></div>
+  </div>
+  <div class="hd-r">
+    <div class="hd-badge" id="hd-in">No inbound data</div>
+    <div class="hd-badge" id="hd-out">No outbound data</div>
+    <div class="hd-user" id="hd-user"></div>
+    <div class="hd-role" id="hd-role"></div>
+    <div class="hd-btns">
+      <button class="hd-btn" id="btn-pw" onclick="openChangePw()">Change Password</button>
+      <button class="hd-btn danger" onclick="Auth.logout()">Sign Out</button>
+    </div>
+  </div>
+</header>
+
+<!-- Data status bar -->
+<div class="status-bar" id="status-bar">
+  <div class="status-item"><div class="status-dot" id="dot-in"></div><span class="status-lbl" id="stat-in">Inbound: not loaded</span></div>
+  <div class="status-sep"></div>
+  <div class="status-item"><div class="status-dot" id="dot-out"></div><span class="status-lbl" id="stat-out">Outbound: not loaded</span></div>
+  <div class="status-sep"></div>
+  <div class="status-item"><div class="status-dot" id="dot-rt"></div><span class="status-lbl" id="stat-rt">Run Types: not loaded</span></div>
+  <div class="status-sep"></div>
+  <div class="status-item"><div class="status-dot" id="dot-ct"></div><span class="status-lbl" id="stat-ct">Campus Types: not loaded</span></div>
+  <button class="refresh-btn" onclick="loadAllData()">↻ Refresh Data</button>
+</div>
+
+<main>
+  <div class="tabs">
+    <button class="tbtn on" onclick="nav('dashboard',this)">📊 Dashboard</button>
+    <button class="tbtn" onclick="nav('groups',this)">⚙ Campus Groups</button>
+    <button class="tbtn admin-only" id="tab-upload" onclick="nav('upload',this)">📂 Upload Files</button>
+    <button class="tbtn admin-only" id="tab-users" onclick="nav('users',this)">👥 Manage Users</button>
+  </div>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div id="page-dashboard" class="page on">
+    <div id="dash-nd" class="nodata">
+      <div class="nd-icon">📊</div>
+      <p>Data is loading from the server… If this persists, an admin may need to upload the latest files.</p>
+    </div>
+    <div id="dash-c" style="display:none;">
+      <div class="dtb">
+        <div class="fg"><label>Campus Group</label>
+          <select id="d-grp" onchange="onGrpChange();runDash()"><option value="">All Groups</option></select>
+        </div>
+        <div class="fg"><label>Campus</label>
+          <select id="d-camp" onchange="onCampChange()"><option value="">All Campuses</option></select>
+        </div>
+        <div class="fg"><label>Run Type</label>
+          <select id="d-rtype" onchange="runDash()">
+            <option value="">All (Gen Ed + Sp Ed)</option>
+            <option value="General Ed">General Ed Only</option>
+            <option value="Special Ed">Special Ed Only</option>
+          </select>
+        </div>
+        <div class="fg"><label>Route</label>
+          <select id="d-route" onchange="runDash()"><option value="">All Routes</option></select>
+        </div>
+        <div class="fg"><label>Date From</label><input type="date" id="d-from" style="width:145px;" onchange="runDash()"></div>
+        <div class="fg"><label>Date To</label><input type="date" id="d-to" style="width:145px;" onchange="runDash()"></div>
+        <button class="run-btn" onclick="runDash()">▶ Run Report</button>
+        <div class="exp-btns">
+          <button class="exp-btn" onclick="exportXLSX()">⬇ Excel</button>
+          <button class="exp-btn" onclick="exportCSV()">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="dirtog">
+        <button class="dtbtn ia" id="dt-in" onclick="setDir('inbound',this)">🌅 Inbound (AM)</button>
+        <button class="dtbtn" id="dt-out" onclick="setDir('outbound',this)">🌇 Outbound (PM)</button>
+      </div>
+
+      <!-- Window selector -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+        <span style="font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--navy);white-space:nowrap;">Measurement Window</span>
+        <select id="win-select" onchange="onWinChange()" style="max-width:280px;font-size:.82rem;padding:7px 12px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:'Montserrat',sans-serif;font-weight:700;cursor:pointer;"></select>
+        <span style="font-size:.75rem;color:var(--text-muted);" id="win-select-hint"></span>
+      </div>
+      <div class="kstrip" id="kstrip"></div>
+      <div class="cgrid">
+        <div class="ccard"><div class="chead"><span class="chtitle">On-Time by Campus</span><span class="chsub" id="cs-sub"></span></div><canvas id="ch-c" height="280"></canvas></div>
+        <div class="ccard"><div class="chead"><span class="chtitle">Daily Trend</span><span class="chsub" id="ct-sub"></span></div><canvas id="ch-t" height="280"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ctitle" id="tbl-ttl">Route Detail</div>
+        <div class="tw"><table><thead id="r-hd"></thead><tbody id="r-bd"></tbody></table></div>
+        <div class="pag">
+          <div id="pg-inf">—</div>
+          <div class="pgbs">
+            <button class="pgb" id="btn-pp" onclick="chPg(-1)">← Prev</button>
+            <button class="pgb" id="btn-pn" onclick="chPg(1)">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GROUPS ══ -->
+  <div id="page-groups" class="page">
+    <div id="groups-readonly-notice" class="readonly-notice" style="display:none;">
+      ℹ️ You can view campus groups but only admins can create or edit them.
+    </div>
+    <div class="gl">
+      <div class="card" id="group-builder">
+        <div class="ctitle" id="btitle">➕ Create Campus Group</div>
+        <div class="fg"><label>Group Name</label><input type="text" id="g-name" placeholder="e.g. High Schools"></div>
+        <div class="fg">
+          <label>Select Campuses</label>
+          <div class="cpwrap">
+            <div class="schips" id="schips" onclick="toggleDD()">
+              <span id="cph" style="color:var(--text-muted);font-size:.8rem;padding:2px 4px;">Click to select campuses…</span>
+            </div>
+            <div class="cdd" id="cdd">
+              <div class="cdd-top">
+                <input type="text" id="csrch" placeholder="Search campuses…" onclick="event.stopPropagation()" oninput="filterOpts()">
+                <div class="type-btns">
+                  <button class="tbadge-btn es" onclick="event.stopPropagation();selType('ES')">All ES</button>
+                  <button class="tbadge-btn ms" onclick="event.stopPropagation();selType('MS')">All MS</button>
+                  <button class="tbadge-btn hs" onclick="event.stopPropagation();selType('HS')">All HS</button>
+                </div>
+              </div>
+              <div id="opts"></div>
+            </div>
+          </div>
+        </div>
+        <div class="conflict-box" id="conflict-box"></div>
+        <div class="sep"></div>
+        <div class="ctitle" style="margin-bottom:12px;">⏱ Bell Times &amp; Windows</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="fg" style="margin-bottom:0;"><label>AM Bell (Inbound)</label><input type="time" id="g-am" value="07:35"></div>
+          <div class="fg" style="margin-bottom:0;"><label>PM Bell (Outbound)</label><input type="time" id="g-pm" value="14:40"></div>
+        </div>
+        <div class="fg" style="margin-top:14px;">
+          <label>Measurement Windows</label>
+          <div id="wlist"></div>
+          <button class="add-w" id="add-win-btn" onclick="addWin()">+ Add Window</button>
+        </div>
+        <div class="sep"></div>
+        <button class="sv-btn" id="sv-btn" onclick="saveGroup()">Save Group</button>
+        <button class="cx-btn" id="cx-btn" onclick="cancelEdit()">✕ Cancel Edit</button>
+      </div>
+      <div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--navy);margin-bottom:14px;">
+          Saved Groups <span style="font-weight:500;color:var(--text-muted);font-size:.65rem;text-transform:none;letter-spacing:0;" id="grp-count"></span>
+        </div>
+        <div id="glist"><div class="empty-st"><div style="font-size:2rem;margin-bottom:8px;">📋</div>No groups yet.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ UPLOAD (ADMIN) ══ -->
+  <div id="page-upload" class="page">
+
+    <!-- Step indicators -->
+    <div style="display:flex;gap:0;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 5px rgba(0,30,70,.07);">
+      <div class="step-ind" id="step-ind-1" onclick="showStep(1)" style="flex:1;padding:14px 20px;cursor:pointer;border-right:1px solid var(--border);transition:all .15s;">
+        <div style="font-family:'Montserrat',sans-serif;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);">Step 1</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:.82rem;font-weight:800;color:var(--navy);margin-top:2px;">📂 Arrival Files</div>
+        <div style="font-size:.68rem;color:var(--text-muted);margin-top:3px;" id="step1-status">Upload inbound &amp; outbound data</div>
+      </div>
+      <div class="step-ind" id="step-ind-2" onclick="showStep(2)" style="flex:1;padding:14px 20px;cursor:pointer;border-right:1px solid var(--border);transition:all .15s;">
+        <div style="font-family:'Montserrat',sans-serif;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);">Step 2</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:.82rem;font-weight:800;color:var(--navy);margin-top:2px;">📋 Run Type Report</div>
+        <div style="font-size:.68rem;color:var(--text-muted);margin-top:3px;" id="step2-status">Upload run type mapping</div>
+      </div>
+      <div class="step-ind" id="step-ind-3" onclick="showStep(3)" style="flex:1;padding:14px 20px;cursor:pointer;transition:all .15s;">
+        <div style="font-family:'Montserrat',sans-serif;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);">Step 3</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:.82rem;font-weight:800;color:var(--navy);margin-top:2px;">🏫 Campus Types</div>
+        <div style="font-size:.68rem;color:var(--text-muted);margin-top:3px;" id="step3-status">Designate campus types</div>
+      </div>
+    </div>
+
+    <!-- STEP 1: Arrival Files -->
+    <div id="upload-step-1">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        <div class="card">
+          <div class="ctitle">🌅 Inbound (AM) Files</div>
+          <div class="dz clickable" id="dz-inbound" ondragover="dzO(event,'inbound')" ondragleave="dzL('inbound')" ondrop="dzD(event,'inbound')" style="margin-bottom:14px;">
+            <div class="dz-icon">📂</div>
+            <div class="dz-lbl ci">Upload Inbound File</div>
+            <div class="dz-hint">Smart Tag Inbound On-Time Arrival Report<br>.csv — one file per date range</div>
+            <div class="fg" style="margin:10px 0 8px;text-align:left;">
+              <label>File Label (optional)</label>
+              <input type="text" id="label-inbound" placeholder="e.g. February 2026" style="font-size:.8rem;">
+            </div>
+            <button class="up-btn" onclick="document.getElementById('fi-in').click()">Choose File</button>
+            <input type="file" id="fi-in" accept=".csv,.xlsx,.xls" onchange="uploadArrival(this.files[0],'inbound')">
+            <div class="liinfo" id="li-in"></div>
+          </div>
+          <div class="ctitle" style="font-size:.65rem;margin-bottom:10px;">Loaded Files</div>
+          <div id="manifest-inbound"><div class="empty-st" style="padding:16px;">No inbound files loaded yet.</div></div>
+        </div>
+        <div class="card">
+          <div class="ctitle">🌇 Outbound (PM) Files</div>
+          <div class="dz clickable" id="dz-outbound" ondragover="dzO(event,'outbound')" ondragleave="dzL('outbound')" ondrop="dzD(event,'outbound')" style="margin-bottom:14px;">
+            <div class="dz-icon">📂</div>
+            <div class="dz-lbl co">Upload Outbound File</div>
+            <div class="dz-hint">Smart Tag Outbound On-Time Arrival Report<br>.csv — one file per date range</div>
+            <div class="fg" style="margin:10px 0 8px;text-align:left;">
+              <label>File Label (optional)</label>
+              <input type="text" id="label-outbound" placeholder="e.g. February 2026" style="font-size:.8rem;">
+            </div>
+            <button class="up-btn" onclick="document.getElementById('fi-out').click()">Choose File</button>
+            <input type="file" id="fi-out" accept=".csv,.xlsx,.xls" onchange="uploadArrival(this.files[0],'outbound')">
+            <div class="liinfo" id="li-out"></div>
+          </div>
+          <div class="ctitle" style="font-size:.65rem;margin-bottom:10px;">Loaded Files</div>
+          <div id="manifest-outbound"><div class="empty-st" style="padding:16px;">No outbound files loaded yet.</div></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn-primary" onclick="showStep(2)">Next: Run Type Report →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Run Type Report -->
+    <div id="upload-step-2" style="display:none;">
+      <div class="card" style="max-width:600px;">
+        <div class="ctitle">📋 Run Type Report</div>
+        <p style="font-size:.82rem;color:var(--text-mid);margin-bottom:16px;line-height:1.6;">
+          Upload the Smart Tag Run Type Report to classify each route as General Ed, Special Ed, Activity, or Transfer/Shuttle.
+          Routes not in this file are automatically treated as General Ed.
+        </p>
+        <div class="dz clickable" id="dz-runtype" ondragover="dzO(event,'runtype')" ondragleave="dzL('runtype')" ondrop="dzD(event,'runtype')" style="margin-bottom:0;">
+          <div class="dz-icon">📋</div>
+          <div class="dz-lbl cr">Upload Run Type Report</div>
+          <div class="dz-hint">Smart Tag Run Type Report · .csv or .xlsx</div>
+          <button class="up-btn" onclick="document.getElementById('fi-rt').click()">Choose File</button>
+          <input type="file" id="fi-rt" accept=".csv,.xlsx,.xls" onchange="uploadFile(this.files[0],'runtype','fi-rt')">
+          <div class="liinfo" id="li-rt"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <button class="btn-secondary" onclick="showStep(1)">← Back</button>
+        <button class="btn-primary" onclick="showStep(3)">Next: Designate Campus Types →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Campus Types -->
+    <div id="upload-step-3" style="display:none;">
+      <div class="card">
+        <div class="ctitle">🏫 Designate Campus Types</div>
+        <p style="font-size:.82rem;color:var(--text-mid);margin-bottom:16px;line-height:1.6;">
+          Assign a type to each campus found in your arrival data. The system has auto-suggested types based on campus names — review and correct any that are wrong, then click <strong>Save Campus Types</strong>.
+        </p>
+        <div id="campus-type-table-wrap">
+          <div class="empty-st">Load inbound or outbound files in Step 1 to see campus list.</div>
+        </div>
+        <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:.75rem;color:var(--text-muted);" id="campus-type-count"></div>
+          <button class="btn-primary" onclick="saveCampusTypes()" id="save-campus-types-btn" style="display:none;">💾 Save Campus Types</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <button class="btn-secondary" onclick="showStep(2)">← Back</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ USERS (ADMIN) ══ -->
+  <div id="page-users" class="page">
+    <div class="users-layout">
+      <!-- Add user form -->
+      <div class="card">
+        <div class="ctitle" id="user-form-title">➕ Add User</div>
+        <div class="fg"><label>Full Name</label><input type="text" id="u-name" placeholder="e.g. Jane Smith"></div>
+        <div class="fg"><label>Username</label><input type="text" id="u-username" placeholder="e.g. jsmith" autocomplete="off"></div>
+        <div class="fg"><label>Password</label><input type="password" id="u-password" placeholder="Temporary password" autocomplete="new-password"></div>
+        <div class="fg">
+          <label>Role</label>
+          <select id="u-role">
+            <option value="viewer">Viewer — can view dashboards and export</option>
+            <option value="admin">Admin — can also upload files and manage users</option>
+          </select>
+        </div>
+        <div class="sep"></div>
+        <button class="btn-primary" style="width:100%;" id="u-save-btn" onclick="saveUser()">Add User</button>
+        <button class="cx-btn" id="u-cx-btn" onclick="cancelUserEdit()">✕ Cancel Edit</button>
+      </div>
+      <!-- User list -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Montserrat',sans-serif;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--navy);">
+            Users <span style="font-weight:500;color:var(--text-muted);font-size:.65rem;text-transform:none;letter-spacing:0;" id="user-count"></span>
+          </div>
+          <input type="text" id="user-search" placeholder="Search users…" style="width:200px;padding:6px 10px;font-size:.8rem;" oninput="renderUserList()">
+        </div>
+        <div id="user-list"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Overlap confirmation modal -->
+<div class="modal-bg" id="modal-overlap">
+  <div class="modal">
+    <div class="modal-title">⚠️ Dates Already Exist</div>
+    <p id="overlap-msg" style="font-size:.85rem;color:var(--text-mid);margin-bottom:16px;line-height:1.6;"></p>
+    <p style="font-size:.82rem;color:var(--text-mid);margin-bottom:20px;">Do you want to replace the existing data with this file?</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-overlap')">No, Keep Existing</button>
+      <button class="btn-primary" style="background:var(--red);" onclick="confirmOverlapReplace()">Yes, Replace It</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change password modal -->
+<div class="modal-bg" id="modal-pw">
+  <div class="modal">
+    <div class="modal-title">🔐 Change Password</div>
+    <div class="fg"><label>Current Password</label><input type="password" id="pw-current" autocomplete="current-password"></div>
+    <div class="fg"><label>New Password</label><input type="password" id="pw-new" autocomplete="new-password"></div>
+    <div class="fg"><label>Confirm New Password</label><input type="password" id="pw-confirm" autocomplete="new-password"></div>
+    <div class="error" id="pw-err" style="background:var(--red-faint);border:1px solid rgba(184,50,50,.3);color:var(--red);border-radius:8px;padding:10px 14px;font-size:.82rem;margin-top:8px;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-pw')">Cancel</button>
+      <button class="btn-primary" onclick="changePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset user password modal -->
+<div class="modal-bg" id="modal-reset-pw">
+  <div class="modal">
+    <div class="modal-title">🔑 Reset Password</div>
+    <p style="font-size:.82rem;color:var(--text-mid);margin-bottom:16px;">Set a new password for <strong id="reset-pw-name"></strong>.</p>
+    <div class="fg"><label>New Password</label><input type="password" id="reset-pw-val" autocomplete="new-password"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-reset-pw')">Cancel</button>
+      <button class="btn-primary" onclick="doResetPassword()">Reset Password</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CAMPUS TYPE MASTER (fallback if file not yet uploaded) ─────────────────
+const CAMPUS_TYPE_DEFAULTS = {
+  'Anderson Elementary School':'ES','Bammel Elementary School':'ES','Beneke Elementary School':'ES',
+  'Booker Elementary School':'ES','Burchett Elementary School':'ES','Clark Elementary School':'ES',
+  'Cooper Elementary School':'ES','Eickenroht Elementary School':'ES','Heritage Elementary School':'ES',
+  'Hirsch Elementary School':'ES','Hoyland Elementary School':'ES','Jenkins Elementary School':'ES',
+  'Lewis Elementary School':'ES','Link Elementary School':'ES','Major Elementary School':'ES',
+  'Marshall Elementary School':'ES','McNabb Elementary School':'ES','Meyer Elementary School':'ES',
+  'Northgate Crossing Elementary School':'ES','Ogden Elementary School':'ES',
+  'Ponderosa Elementary School':'ES','Reynolds Elementary School':'ES','Salyers Elementary School':'ES',
+  'Smith Elementary School':'ES','Thompson Elementary School':'ES','Winship Elementary School':'ES',
+  'Bailey Middle School':'MS','Bammel Middle School':'MS','Claughton Middle School':'MS',
+  'Dueitt Middle School':'MS','Richey Academy':'MS','Roberson Middle School':'MS',
+  'Spring Leadership Academy':'MS','Springwoods Village Middle School':'MS',
+  'Teague Middle School':'MS','Twin Creeks Middle School':'MS','Wells Middle School':'MS',
+  'Dekaney High School':'HS','Dekaney High School 9th Grade Campus':'HS',
+  'Klein Forest High School':'HS','Momentum High School':'HS','Spring Early College Academy':'HS',
+  'Spring High School':'HS','Spring High School 9th Grade Campus':'HS',
+  'Westfield High School':'HS','Westfield High School 9th Grade Campus':'HS','Wunsche High School':'HS',
+};
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let groups=[], raw={inbound:[],outbound:[]}, rtMap={};
+let campusTypeMap={...CAMPUS_TYPE_DEFAULTS};
+let selCamps=[], editId=null, wSeq=0, campList=[];
+let dir='inbound', dRows=[], rtRows=[], pgData=[], pg=1, sKey='pct0', sDir=-1;
+const PG=50;
+let charts={};
+let lastWins=[];
+let allUsers=[], editUserId=null, resetPwUserId=null;
+let currentUser=null;
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+(async function init(){
+  currentUser = await Auth.verify();
+  if(!currentUser) return;
+  document.getElementById('hd-user').textContent = currentUser.name || currentUser.username;
+  document.getElementById('hd-role').textContent = currentUser.role;
+  // Show admin tabs
+  if(currentUser.role === 'admin'){
+    document.querySelectorAll('.admin-only').forEach(el => el.classList.add('visible'));
+  } else {
+    document.getElementById('groups-readonly-notice').style.display='block';
+    setGroupBuilderReadonly(true);
+  }
+  buildCampList();
+  await Promise.all([loadAllData(), loadGroups()]);
+  if(currentUser.role === 'admin') loadUsers();
+  document.getElementById('loading').style.display='none';
+  resetBuilder();
+  buildOpts();
+})();
+
+function setGroupBuilderReadonly(readonly){
+  const fields = document.querySelectorAll('#group-builder input, #group-builder select, #group-builder button');
+  fields.forEach(el => { el.disabled = readonly; el.style.opacity = readonly ? '.5' : '1'; });
+  document.getElementById('group-builder').style.cursor = readonly ? 'default' : '';
+}
+
+// ── DATA LOADING ───────────────────────────────────────────────────────────
+let _pendingOverlapFile = null;   // file object waiting for overlap confirmation
+let _pendingOverlapType = null;   // 'inbound' or 'outbound'
+
+async function loadAllData(){
+  try {
+    const res = await API.get('/api/files');
+    if(!res||!res.ok) return;
+    const { files } = await res.json();
+    updateStatusBar(files);
+    const loaders = [];
+    if(files.inbound)    loaders.push(fetchArrivalAll('inbound'));
+    if(files.outbound)   loaders.push(fetchArrivalAll('outbound'));
+    if(files.runtype)    loaders.push(fetchAndParseRunType(files.runtype));
+    loaders.push(loadCampusTypesFromAPI());
+    loaders.push(refreshManifest('inbound'));
+    loaders.push(refreshManifest('outbound'));
+    await Promise.all(loaders);
+    buildCampList(); buildOpts();
+    updateStepStatus();
+    if(raw.inbound.length>0||raw.outbound.length>0){ checkDashReady(); popFilters(); }
+  } catch(e){ console.error('Error loading data:',e); }
+}
+
+async function loadCampusTypesFromAPI(){
+  try {
+    const res = await API.get('/api/campustypes');
+    if(!res||!res.ok) return;
+    const { campusTypes } = await res.json();
+    if(campusTypes && Object.keys(campusTypes).length){
+      campusTypeMap = campusTypes;
+    }
+  } catch(e){ console.error('Error loading campus types:',e); }
+}
+
+function updateStatusBar(files){
+  const fmt = meta => {
+    if(!meta) return null;
+    const d = new Date(meta.uploaded||meta.uploadedAt||'');
+    return isNaN(d) ? 'loaded' : timeAgo(d);
+  };
+  const setStatus = (dotId,statId,label,meta,extra='') => {
+    const dot=document.getElementById(dotId), stat=document.getElementById(statId);
+    if(!dot||!stat)return;
+    if(meta){ dot.className='status-dot ok'; stat.textContent=`${label}: ${fmt(meta)}${extra}`; }
+    else { dot.className='status-dot warn'; stat.textContent=`${label}: not uploaded`; }
+  };
+  setStatus('dot-in','stat-in','Inbound',files.inbound, files.inbound?` · ${files.inbound.count} file${files.inbound.count!==1?'s':''}, ${files.inbound.totalRecords?.toLocaleString()} records`:'');
+  setStatus('dot-out','stat-out','Outbound',files.outbound, files.outbound?` · ${files.outbound.count} file${files.outbound.count!==1?'s':''}, ${files.outbound.totalRecords?.toLocaleString()} records`:'');
+  setStatus('dot-rt','stat-rt','Run Types',files.runtype);
+  setStatus('dot-ct','stat-ct','Campus Types',files.campustype);
+}
+
+function timeAgo(date){
+  const diff=Date.now()-date.getTime(), days=Math.floor(diff/86400000), hrs=Math.floor(diff/3600000), mins=Math.floor(diff/60000);
+  if(days>1)return`updated ${days}d ago`; if(days===1)return'updated yesterday';
+  if(hrs>0)return`updated ${hrs}h ago`; if(mins>0)return`updated ${mins}m ago`; return'just updated';
+}
+
+async function fetchArrivalAll(type){
+  try {
+    // Get manifest to know which files exist
+    const mRes = await API.get(`/api/files/${type}/manifest`);
+    if(!mRes||!mRes.ok){ console.error(`fetchArrivalAll ${type} manifest failed:`, mRes?.status); return; }
+    const { manifest } = await mRes.json();
+    if(!manifest||!manifest.length){ console.log(`No ${type} files in manifest`); return; }
+
+    // Fetch each file individually — avoids Worker timeout from merging all files at once
+    const sorted = [...manifest].sort((a,b)=>a.dateFrom.localeCompare(b.dateFrom));
+    let allRows = [];
+    let headers = null;
+
+    for(const entry of sorted){
+      const res = await API.get(`/api/files/chunk?type=${type}&key=${encodeURIComponent(entry.key)}`);
+      if(!res||!res.ok){ console.warn(`Skipping ${entry.key} — fetch failed`); continue; }
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length < 2) continue;
+      if(!headers){
+        headers = lines[0].split(',').map(h=>strip(h.replace(/^"|"$/g,'').trim()));
+      }
+      const rows = lines.slice(1).map(line=>{
+        const vals=[], row={};
+        let cur='',inQ=false;
+        for(let i=0;i<line.length;i++){
+          const c=line[i];
+          if(c==='"'&&!inQ)inQ=true;
+          else if(c==='"'&&inQ&&line[i+1]==='"'){cur+='"';i++;}
+          else if(c==='"'&&inQ)inQ=false;
+          else if(c===','&&!inQ){vals.push(cur);cur='';}
+          else cur+=c;
+        }
+        vals.push(cur);
+        headers.forEach((h,i)=>{row[h]=strip((vals[i]||'').replace(/^"|"$/g,'').trim());});
+        return row;
+      });
+      allRows = allRows.concat(rows);
+    }
+
+    if(!allRows.length){ console.error(`fetchArrivalAll ${type}: no rows parsed`); return; }
+    raw[type] = allRows;
+    const hid=type==='inbound'?'hd-in':'hd-out';
+    const h=document.getElementById(hid);
+    h.textContent=`${type==='inbound'?'🌅':'🌇'} ${raw[type].length.toLocaleString()} records (${sorted.length} month${sorted.length!==1?'s':''})`;
+    h.classList.add('ok');
+    console.log(`Loaded ${raw[type].length} ${type} records from ${sorted.length} files.`);
+  } catch(e){ console.error(`Error loading ${type}:`,e); }
+}
+
+async function refreshManifest(type){
+  try {
+    const res = await API.get(`/api/files/${type}/manifest`);
+    if(!res||!res.ok) return;
+    const { manifest } = await res.json();
+    renderManifest(type, manifest);
+  } catch(e){}
+}
+
+function renderManifest(type, manifest){
+  const el = document.getElementById('manifest-'+type);
+  if(!el)return;
+  if(!manifest||!manifest.length){
+    el.innerHTML='<div class="empty-st" style="padding:16px;">No files loaded yet.</div>';return;
+  }
+  const sorted = [...manifest].sort((a,b)=>a.dateFrom.localeCompare(b.dateFrom));
+  el.innerHTML = sorted.map(f=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;gap:10px;">
+      <div style="min-width:0;">
+        <div style="font-family:'Montserrat',sans-serif;font-size:.78rem;font-weight:700;color:var(--navy);margin-bottom:2px;">${f.label||f.key}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--text-muted);">${fmtDateShort(f.dateFrom)} – ${fmtDateShort(f.dateTo)} · ${f.records?.toLocaleString()||'?'} records</div>
+        <div style="font-size:.62rem;color:var(--text-muted);margin-top:2px;">Uploaded by ${f.uploadedBy||'admin'} · ${timeAgo(new Date(f.uploadedAt))}</div>
+      </div>
+      <button class="btn-danger" style="flex-shrink:0;font-size:.6rem;padding:5px 10px;" onclick="deleteArrivalFile('${type}','${f.key}','${(f.label||f.key).replace(/'/g,"\\'")}')">Delete</button>
+    </div>`).join('');
+}
+
+function fmtDateShort(iso){
+  if(!iso)return'?';
+  const [y,m,d]=iso.split('-');
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return`${months[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
+}
+
+async function deleteArrivalFile(type, key, label){
+  if(!confirm(`Delete "${label}"?\n\nThis will permanently remove this data from the portal.`))return;
+  const res = await API.del(`/api/files/${type}/${key}`);
+  if(!res||!res.ok){ const d=await res.json(); toast(d.error||'Delete failed.','err'); return; }
+  toast(`"${label}" deleted.`,'ok');
+  await loadAllData();
+}
+
+async function fetchAndParseRunType(meta){
+  try {
+    const res = await API.get('/api/files/runtype');
+    if(!res||!res.ok) return;
+    // Always parse as text/CSV regardless of file extension
+    const text = await res.text();
+    rtMap={};
+    const lines = text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length < 2) return;
+    const headers = lines[0].split(',').map(h=>strip(h.replace(/^"|"$/g,'').trim()));
+    lines.slice(1).forEach(line=>{
+      const vals = line.split(',').map(v=>strip(v.replace(/^"|"$/g,'').trim()));
+      const row = {};
+      headers.forEach((h,i)=>{ row[h] = vals[i]||''; });
+      const name = strip(String(row['Run Name']||'').trim());
+      if(!name) return;
+      const tc=['General Ed Run','Saturday School Run','Special Ed Run','Activity Run','TransfersShuttles Run']
+        .find(col=>row[col]&&String(row[col]).trim()!=='');
+      if(tc) rtMap[name]=tc.replace(' Run','').replace('TransfersShuttles','Transfers/Shuttles');
+    });
+    console.log('Run types loaded:', Object.keys(rtMap).length);
+  } catch(e){ console.error('Error loading runtype:',e); }
+}
+
+async function fetchAndParseCampusType(meta){
+  try {
+    const res = await API.get('/api/files/campustype');
+    if(!res||!res.ok) return;
+    const text = await res.text();
+    const tempMap={};
+    const lines = text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length < 2) return;
+    const headers = lines[0].split(',').map(h=>strip(h.replace(/^"|"$/g,'').trim()));
+    // Support both 'CAMPUS TYPE' (full words) and 'CAMPUS TYPE ABBREV' (ES/MS/HS)
+    const typeCol = headers.find(h=>h.toUpperCase().includes('CAMPUS TYPE'))||'CAMPUS TYPE';
+    const typeConvert={'ELEMENTARY':'ES','MIDDLE SCHOOL':'MS','HIGH SCHOOL':'HS','ES':'ES','MS':'MS','HS':'HS'};
+    lines.slice(1).forEach(line=>{
+      const vals = line.split(',').map(v=>strip(v.replace(/^"|"$/g,'').trim()));
+      const row = {};
+      headers.forEach((h,i)=>{ row[h] = vals[i]||''; });
+      const name = strip(String(row['Campus']||row['CAMPUS']||'').trim());
+      const rawType = strip(String(row[typeCol]||'').trim().toUpperCase());
+      const t = typeConvert[rawType]||'?';
+      if(!name) return;
+      const existing=Object.keys(tempMap).find(k=>
+        k.toLowerCase().replace(/ (school|elementary|middle|high)$/,'')===
+        name.toLowerCase().replace(/ (school|elementary|middle|high)$/,''));
+      if(!existing||name.length>existing.length){if(existing)delete tempMap[existing];tempMap[name]=t;}
+    });
+    campusTypeMap={...tempMap};
+    buildCampList(); buildOpts();
+    console.log('Campus types loaded:', Object.keys(campusTypeMap).length, Object.entries(campusTypeMap).slice(0,3));
+  } catch(e){ console.error('Error loading campustype:',e); }
+}
+
+// ── FILE PARSING ───────────────────────────────────────────────────────────
+function strip(v){
+  if(typeof v !== 'string') return v;
+  v = v.trim();
+  if(v.startsWith('="') && v.endsWith('"')) return v.slice(2,-1);
+  if(v.startsWith('=')) return v.slice(1);
+  if(v.startsWith('"') && v.endsWith('"')) return v.slice(1,-1);
+  return v;
+}
+
+function readFileAsBuffer(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=e=>resolve(e.target.result); r.onerror=reject;
+    const ext=file.name.split('.').pop().toLowerCase();
+    if(ext==='csv')r.readAsText(file); else r.readAsBinaryString(file);
+  });
+}
+
+async function parseRunTypeFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  const content=await readFileAsBuffer(file);
+  const wb=ext==='csv'?XLSX.read(content,{type:'string'}):XLSX.read(content,{type:'binary'});
+  rtMap={};
+  XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}).forEach(row=>{
+    const name=strip(String(row['Run Name']||'').trim());if(!name)return;
+    const tc=['General Ed Run','Saturday School Run','Special Ed Run','Activity Run','TransfersShuttles Run']
+      .find(col=>row[col]&&String(row[col]).trim()!=='');
+    if(tc)rtMap[name]=tc.replace(' Run','').replace('TransfersShuttles','Transfers/Shuttles');
+  });
+}
+
+async function parseCampusTypeFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  const content=await readFileAsBuffer(file);
+  const wb=ext==='csv'?XLSX.read(content,{type:'string'}):XLSX.read(content,{type:'binary'});
+  const typeConvert={'ELEMENTARY':'ES','MIDDLE SCHOOL':'MS','HIGH SCHOOL':'HS'};
+  const tempMap={};
+  XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}).forEach(row=>{
+    const name=strip(String(row['Campus']||'').trim());
+    const t=typeConvert[strip(String(row['CAMPUS TYPE']||'').trim().toUpperCase())]||'?';
+    if(!name)return;
+    const existing=Object.keys(tempMap).find(k=>
+      k.toLowerCase().replace(/ (school|elementary|middle|high)$/,'')===
+      name.toLowerCase().replace(/ (school|elementary|middle|high)$/,''));
+    if(!existing||name.length>existing.length){if(existing)delete tempMap[existing];tempMap[name]=t;}
+  });
+  campusTypeMap={...tempMap};
+}
+
+// ── FILE UPLOAD ────────────────────────────────────────────────────────────
+// ── STEP WIZARD ────────────────────────────────────────────────────────────
+let currentStep = 1;
+
+function showStep(n){
+  currentStep = n;
+  [1,2,3].forEach(i=>{
+    const step = document.getElementById('upload-step-'+i);
+    const ind  = document.getElementById('step-ind-'+i);
+    if(step) step.style.display = i===n ? 'block' : 'none';
+    if(ind)  ind.classList.toggle('active', i===n);
+  });
+  if(n===3) buildCampusTypeTable();
+}
+
+function updateStepStatus(){
+  const hasArrival = raw.inbound.length > 0 || raw.outbound.length > 0;
+  const hasRunType = Object.keys(rtMap).length > 0;
+  const hasCampusTypes = Object.values(campusTypeMap).some(v=>v!=='?');
+
+  const s1 = document.getElementById('step1-status');
+  const s2 = document.getElementById('step2-status');
+  const s3 = document.getElementById('step3-status');
+  const i1 = document.getElementById('step-ind-1');
+  const i2 = document.getElementById('step-ind-2');
+  const i3 = document.getElementById('step-ind-3');
+
+  if(hasArrival){
+    if(s1) s1.textContent = `✓ ${(raw.inbound.length+raw.outbound.length).toLocaleString()} records loaded`;
+    if(i1) i1.classList.add('complete');
+  }
+  if(hasRunType){
+    if(s2) s2.textContent = `✓ ${Object.keys(rtMap).length.toLocaleString()} routes mapped`;
+    if(i2) i2.classList.add('complete');
+  }
+  if(hasCampusTypes){
+    const typed = Object.values(campusTypeMap).filter(v=>v!=='?').length;
+    if(s3) s3.textContent = `✓ ${typed} campuses designated`;
+    if(i3) i3.classList.add('complete');
+  }
+}
+
+// ── CAMPUS TYPE DESIGNATION ────────────────────────────────────────────────
+let campusTypeDraft = {}; // working copy while editing
+
+function autoDetectType(name){
+  const n = name.toLowerCase();
+  if(n.includes('elementary') || n.includes(' es ') || n.endsWith(' es')) return 'ES';
+  if(n.includes('middle') || n.includes(' ms ') || n.endsWith(' ms')) return 'MS';
+  if(n.includes('high') || n.includes(' hs ') || n.endsWith(' hs')) return 'HS';
+  return '?';
+}
+
+function buildCampusTypeTable(){
+  const wrap = document.getElementById('campus-type-table-wrap');
+  const countEl = document.getElementById('campus-type-count');
+  const saveBtn = document.getElementById('save-campus-types-btn');
+
+  // Get all unique campuses from arrival data
+  const campuses = [...new Set([
+    ...raw.inbound.map(r=>r['Campus']),
+    ...raw.outbound.map(r=>r['Campus'])
+  ].filter(Boolean))].sort();
+
+  if(!campuses.length){
+    wrap.innerHTML='<div class="empty-st">Load inbound or outbound files in Step 1 to see campus list.</div>';
+    if(saveBtn) saveBtn.style.display='none';
+    return;
+  }
+
+  // Initialize draft from existing campusTypeMap, auto-detect for unknowns
+  campusTypeDraft = {};
+  campuses.forEach(c=>{
+    campusTypeDraft[c] = campusTypeMap[c] && campusTypeMap[c]!=='?' 
+      ? campusTypeMap[c] 
+      : autoDetectType(c);
+  });
+
+  const typeOpts = (selected) => ['ES','MS','HS','?'].map(t=>
+    `<option value="${t}" ${selected===t?'selected':''}>${t==='ES'?'Elementary':t==='MS'?'Middle School':t==='HS'?'High School':'Other/Unknown'}</option>`
+  ).join('');
+
+  wrap.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn-secondary" style="font-size:.68rem;padding:6px 12px;" onclick="setAllTypes('ES')">Set All Elementary</button>
+      <button class="btn-secondary" style="font-size:.68rem;padding:6px 12px;" onclick="setAllMatching('elementary','ES')">Auto-detect All</button>
+    </div>
+    <div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+    <table class="ct-table">
+      <thead><tr><th>Campus Name</th><th>Type</th></tr></thead>
+      <tbody>
+        ${campuses.map(c=>`
+          <tr>
+            <td>${c}</td>
+            <td>
+              <select class="ct-select ${campusTypeDraft[c]==='ES'?'es':campusTypeDraft[c]==='MS'?'ms':campusTypeDraft[c]==='HS'?'hs':'other'}"
+                onchange="campusTypeDraft['${c.replace(/'/g,"\\'")}']= this.value; this.className='ct-select '+(this.value==='ES'?'es':this.value==='MS'?'ms':this.value==='HS'?'hs':'other');">
+                ${typeOpts(campusTypeDraft[c])}
+              </select>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>`;
+
+  const typed = Object.values(campusTypeDraft).filter(v=>v!=='?').length;
+  const untyped = campuses.length - typed;
+  if(countEl) countEl.textContent = `${typed} of ${campuses.length} campuses designated${untyped?` · ${untyped} still unassigned`:''}`;
+  if(saveBtn) saveBtn.style.display='block';
+}
+
+function setAllMatching(keyword, type){
+  Object.keys(campusTypeDraft).forEach(c=>{
+    if(c.toLowerCase().includes(keyword)) campusTypeDraft[c]=type;
+  });
+  buildCampusTypeTable();
+}
+
+async function saveCampusTypes(){
+  // Save to R2 as JSON via API
+  campusTypeMap = {...campusTypeDraft};
+  try {
+    const res = await API.put('/api/campustypes', { campusTypes: campusTypeMap });
+    if(res && res.ok){
+      toast('Campus types saved.','ok');
+      buildCampList(); buildOpts();
+      updateStepStatus();
+    } else {
+      toast('Could not save campus types.','err');
+    }
+  } catch(e){
+    // Fallback: just update in memory if API fails
+    buildCampList(); buildOpts();
+    toast('Campus types saved locally.','ok');
+    updateStepStatus();
+  }
+}
+
+function dzO(e,d){e.preventDefault();document.getElementById('dz-'+d).classList.add('over');}
+function dzL(d){document.getElementById('dz-'+d).classList.remove('over');}
+function dzD(e,d){e.preventDefault();dzL(d);
+  if(d==='inbound'||d==='outbound') uploadArrival(e.dataTransfer.files[0],d);
+  else uploadFile(e.dataTransfer.files[0],d,null);
+}
+
+// Upload inbound/outbound with multi-month support
+async function uploadArrival(file, type){
+  if(!file)return;
+  const liEl=document.getElementById('li-'+type.slice(0,2)+(type==='inbound'?'':'out').slice(0,2));
+  // Use li-in or li-out
+  const liId=type==='inbound'?'li-in':'li-out';
+  const liE=document.getElementById(liId);
+  const label=document.getElementById('label-'+type)?.value.trim()||'';
+  liE.textContent='Uploading…';liE.className='liinfo';
+  try {
+    const fd=new FormData();
+    fd.append('file',file);
+    if(label)fd.append('label',label);
+    const res=await API.upload(`/api/files/${type}`,fd);
+    if(!res){liE.textContent='Upload failed.';liE.className='liinfo warn';return;}
+    const data=await res.json();
+    if(data.overlap){
+      // Show confirmation modal
+      _pendingOverlapFile=file;
+      _pendingOverlapType=type;
+      document.getElementById('overlap-msg').textContent=data.message+' Do you want to replace it?';
+      openModal('modal-overlap');
+      liE.textContent='Awaiting confirmation…';liE.className='liinfo warn';
+      return;
+    }
+    if(!data.ok){liE.textContent='Error: '+(data.error||'unknown');liE.className='liinfo warn';return;}
+    liE.textContent=`✓ Uploaded: ${data.label} · ${data.records?.toLocaleString()} records`;
+    liE.className='liinfo';
+    document.getElementById('label-'+type).value='';
+    toast(`${type} file uploaded — ${data.records?.toLocaleString()} records.`,'ok');
+    await loadAllData();
+  } catch(e){liE.textContent='Error: '+e.message;liE.className='liinfo warn';}
+}
+
+async function confirmOverlapReplace(){
+  closeModal('modal-overlap');
+  const file=_pendingOverlapFile, type=_pendingOverlapType;
+  const liId=type==='inbound'?'li-in':'li-out';
+  const liE=document.getElementById(liId);
+  const label=document.getElementById('label-'+type)?.value.trim()||'';
+  liE.textContent='Replacing…';liE.className='liinfo';
+  try {
+    const fd=new FormData();
+    fd.append('file',file);
+    if(label)fd.append('label',label);
+    const res=await API.upload(`/api/files/${type}/confirm`,fd);
+    const data=await res.json();
+    if(!data.ok){liE.textContent='Error: '+(data.error||'unknown');liE.className='liinfo warn';return;}
+    liE.textContent=`✓ Replaced: ${data.records?.toLocaleString()} records`;
+    liE.className='liinfo';
+    document.getElementById('label-'+type).value='';
+    toast(`${type} data replaced successfully.`,'ok');
+    await loadAllData();
+  } catch(e){liE.textContent='Error: '+e.message;liE.className='liinfo warn';}
+  _pendingOverlapFile=null;_pendingOverlapType=null;
+}
+
+// Upload single-version files (runtype, campustype)
+async function uploadFile(file, type, inputId){
+  if(!file)return;
+  const lid={'runtype':'li-rt','campustype':'li-ct'};
+  const liE=document.getElementById(lid[type]);
+  if(!liE)return;
+  liE.textContent='Uploading…';liE.className='liinfo';
+  try {
+    const fd=new FormData();fd.append('file',file);
+    const res=await API.upload(`/api/files/${type}`,fd);
+    if(!res||!res.ok){const d=await res.json();liE.textContent='Error: '+(d.error||'unknown');liE.className='liinfo warn';return;}
+    const data=await res.json();
+    document.getElementById('dz-'+type).classList.add('done');
+    liE.textContent=`✓ Uploaded: ${file.name}`;liE.className='liinfo';
+    toast(`${type} file uploaded.`,'ok');
+    if(type==='runtype')await parseRunTypeFile(file);
+    else if(type==='campustype'){await parseCampusTypeFile(file);buildCampList();buildOpts();}
+    await loadAllData();
+    if(inputId)document.getElementById(inputId).value='';
+  } catch(e){liE.textContent='Error: '+e.message;liE.className='liinfo warn';}
+}
+
+// ── GROUPS ─────────────────────────────────────────────────────────────────
+async function loadGroups(){
+  try {
+    const res = await API.get('/api/groups');
+    if(!res||!res.ok) return;
+    const data = await res.json();
+    groups = data.groups || [];
+    renderGroups();
+    updGrpSel();
+  } catch(e) { console.error('Error loading groups:', e); }
+}
+
+async function persistGroups(){
+  try {
+    const res = await API.put('/api/groups', { groups });
+    if(!res||!res.ok) toast('Could not save groups to server.','err');
+  } catch(e) { toast('Could not save groups.','err'); }
+}
+
+// ── CAMPUS LIST ────────────────────────────────────────────────────────────
+function buildCampList(){
+  const map={...campusTypeMap};
+  [...raw.inbound,...raw.outbound].forEach(r=>{
+    const c=r['Campus']||'';if(!c||map[c])return;
+    const rt=r['Route']||'';
+    if(/\bES\b|Elementary/i.test(rt+' '+c))map[c]='ES';
+    else if(/\bMS\b|Middle/i.test(rt+' '+c))map[c]='MS';
+    else if(/\bHS\b|High School/i.test(rt+' '+c))map[c]='HS';
+    else map[c]='?';
+  });
+  campList=Object.entries(map).map(([name,type])=>({name,type})).sort((a,b)=>a.name.localeCompare(b.name));
+}
+
+function campInGroup(name,excludeId=null){
+  return groups.find(g=>g.id!==excludeId&&g.campuses.includes(name))||null;
+}
+
+// ── CAMPUS DROPDOWN ────────────────────────────────────────────────────────
+function buildOpts(){filterOpts();}
+function filterOpts(){
+  const q=document.getElementById('csrch').value.toLowerCase();
+  renderOpts(q?campList.filter(c=>c.name.toLowerCase().includes(q)):campList);
+}
+function renderOpts(list){
+  document.getElementById('opts').innerHTML=list.map(c=>{
+    const inGrp=campInGroup(c.name,editId);
+    const checked=selCamps.includes(c.name);
+    const disabled=inGrp&&!checked;
+    return`<div class="copt" onclick="${disabled?'':'togCamp(\''+c.name.replace(/'/g,"\\'")+'\')'}" style="${disabled?'opacity:.45;cursor:not-allowed;':''}">
+      <input type="checkbox" ${checked?'checked':''} ${disabled?'disabled':''} onclick="event.stopPropagation();${disabled?'':'togCamp(\''+c.name.replace(/'/g,"\\'")+'\')'}">
+      <span class="co-lbl">${c.name}</span>
+      ${inGrp?`<span class="co-grp">in ${inGrp.name}</span>`:''}
+      <span class="cobdg t-${c.type==='?'?'x':c.type}">${c.type}</span>
+    </div>`;
+  }).join('');
+}
+function selType(type){
+  if(currentUser?.role!=='admin')return;
+  const toAdd=campList.filter(c=>c.type===type&&!campInGroup(c.name,editId)).map(c=>c.name);
+  toAdd.forEach(n=>{if(!selCamps.includes(n))selCamps.push(n);});
+  renderChips();filterOpts();checkConflicts();
+  toast(`Added ${toAdd.length} ${type} campus${toAdd.length!==1?'es':''}.`,'ok');
+}
+function toggleDD(){
+  if(currentUser?.role!=='admin')return;
+  const dd=document.getElementById('cdd');
+  dd.classList.toggle('open');
+  if(dd.classList.contains('open')){document.getElementById('csrch').value='';filterOpts();setTimeout(()=>document.getElementById('csrch').focus(),50);}
+}
+document.addEventListener('click',e=>{
+  if(!document.querySelector('.cpwrap')?.contains(e.target))
+    document.getElementById('cdd').classList.remove('open');
+});
+function togCamp(name){
+  if(currentUser?.role!=='admin')return;
+  const inGrp=campInGroup(name,editId);
+  if(inGrp&&!selCamps.includes(name)){toast(`"${name}" is already in "${inGrp.name}".`,'err');return;}
+  const i=selCamps.indexOf(name);
+  if(i>=0)selCamps.splice(i,1);else selCamps.push(name);
+  renderChips();filterOpts();checkConflicts();
+}
+function remCamp(name){
+  if(currentUser?.role!=='admin')return;
+  selCamps=selCamps.filter(c=>c!==name);renderChips();filterOpts();checkConflicts();
+}
+function renderChips(){
+  const c=document.getElementById('schips'),ph=document.getElementById('cph');
+  if(!selCamps.length){c.innerHTML='';c.appendChild(ph);ph.style.display='';}
+  else{
+    ph.style.display='none';
+    c.innerHTML=selCamps.map(s=>`<span class="chip">${s}<button class="chip-x" onclick="event.stopPropagation();remCamp('${s.replace(/'/g,"\\'")}')">✕</button></span>`).join('')+ph.outerHTML;
+    document.getElementById('cph').style.display='none';
+  }
+}
+function checkConflicts(){
+  const cx=selCamps.filter(n=>campInGroup(n,editId));
+  const box=document.getElementById('conflict-box');
+  if(cx.length){box.textContent=`⚠ ${cx.length} campus${cx.length>1?'es are':' is'} already in another group: ${cx.join(', ')}`;box.classList.add('show');}
+  else box.classList.remove('show');
+}
+
+// ── WINDOWS ────────────────────────────────────────────────────────────────
+function addWin(label='',mins=15,wd='inbound'){
+  if(currentUser?.role!=='admin')return;
+  const id=++wSeq;
+  const d=document.createElement('div');
+  d.className='wr';d.id='wr-'+id;
+  d.innerHTML=`
+    <div class="fg" style="margin:0;"><label>Label</label><input type="text" id="wl-${id}" value="${label}" placeholder="e.g. 15 Min Before"></div>
+    <div class="fg" style="margin:0;"><label>Minutes</label><input type="text" id="wm-${id}" value="${mins}" style="text-align:center;"></div>
+    <div class="fg" style="margin:0;"><label>Direction</label>
+      <select id="wd-${id}"><option value="inbound" ${wd==='inbound'?'selected':''}>Inbound</option><option value="outbound" ${wd==='outbound'?'selected':''}>Outbound</option><option value="both" ${wd==='both'?'selected':''}>Both</option></select>
+    </div>
+    <button class="rm-w" onclick="document.getElementById('wr-${id}').remove()">✕</button>`;
+  document.getElementById('wlist').appendChild(d);
+}
+function getWins(){
+  return[...document.querySelectorAll('#wlist .wr')].map(row=>{
+    const id=row.id.replace('wr-','');
+    return{label:document.getElementById('wl-'+id).value.trim()||document.getElementById('wm-'+id).value+'m',
+      mins:parseFloat(document.getElementById('wm-'+id).value)||0,
+      dir:document.getElementById('wd-'+id).value};
+  }).filter(w=>w.mins>=0);
+}
+function clearWins(){document.getElementById('wlist').innerHTML='';wSeq=0;}
+
+// ── GROUPS CRUD ────────────────────────────────────────────────────────────
+async function saveGroup(){
+  if(currentUser?.role!=='admin'){toast('Admins only.','err');return;}
+  const name=document.getElementById('g-name').value.trim();
+  if(!name){toast('Enter a group name.','err');return;}
+  if(!selCamps.length){toast('Select at least one campus.','err');return;}
+  const cx=selCamps.filter(n=>campInGroup(n,editId));
+  if(cx.length){toast(`Remove conflicting campuses: ${cx.join(', ')}`,  'err');return;}
+  const wins=getWins();
+  if(!wins.length){toast('Add at least one window.','err');return;}
+  if(!editId&&groups.length>=7){toast('Maximum 7 groups.','err');return;}
+  const entry={id:editId||Date.now(),name,campuses:[...selCamps],
+    amBell:document.getElementById('g-am').value,pmBell:document.getElementById('g-pm').value,windows:wins};
+  if(editId){const i=groups.findIndex(g=>g.id===editId);if(i>=0)groups[i]=entry;}
+  else groups.push(entry);
+  await persistGroups();
+  renderGroups();resetBuilder();
+  toast(editId?'Group updated.':'Group saved.','ok');editId=null;updGrpSel();
+}
+function editGroup(id){
+  if(currentUser?.role!=='admin')return;
+  const g=groups.find(g=>g.id===id);if(!g)return;
+  editId=id;
+  document.getElementById('g-name').value=g.name;
+  document.getElementById('g-am').value=g.amBell||'07:35';
+  document.getElementById('g-pm').value=g.pmBell||'14:40';
+  selCamps=[...g.campuses];renderChips();filterOpts();checkConflicts();
+  clearWins();g.windows.forEach(w=>addWin(w.label,w.mins,w.dir));
+  document.getElementById('btitle').textContent='✏️ Edit Group';
+  document.getElementById('sv-btn').textContent='Update Group';
+  document.getElementById('cx-btn').style.display='block';
+  document.querySelector('.gl .card').scrollIntoView({behavior:'smooth'});
+}
+async function delGroup(id){
+  if(!confirm('Delete this group?'))return;
+  groups=groups.filter(g=>g.id!==id);
+  await persistGroups();renderGroups();
+  if(editId===id)cancelEdit();toast('Group deleted.');updGrpSel();
+}
+function cancelEdit(){editId=null;resetBuilder();}
+function resetBuilder(){
+  document.getElementById('g-name').value='';
+  document.getElementById('g-am').value='07:35';
+  document.getElementById('g-pm').value='14:40';
+  selCamps=[];renderChips();filterOpts();
+  document.getElementById('conflict-box').classList.remove('show');
+  clearWins();
+  addWin('15 Min Before Bell',15,'inbound');
+  addWin('10 Min Before Bell',10,'inbound');
+  addWin('At Bell',0,'both');
+  addWin('30 Min After Bell',30,'outbound');
+  addWin('15 Min After Bell',15,'outbound');
+  document.getElementById('btitle').textContent='➕ Create Campus Group';
+  document.getElementById('sv-btn').textContent='Save Group';
+  document.getElementById('cx-btn').style.display='none';
+}
+function renderGroups(){
+  const c=document.getElementById('glist');
+  document.getElementById('grp-count').textContent=groups.length?`— ${groups.length} of 7`:'';
+  if(!groups.length){c.innerHTML=`<div class="empty-st"><div style="font-size:2rem;margin-bottom:8px;">📋</div>No groups yet.</div>`;return;}
+  const isAdmin=currentUser?.role==='admin';
+  c.innerHTML=groups.map(g=>`
+    <div class="gc">
+      <div class="gc-hd"><div class="gc-name">${g.name}</div>
+        <div class="gc-acts">
+          ${isAdmin?`<button class="gc-b gc-ed" onclick="editGroup(${g.id})">Edit</button><button class="gc-b gc-dl" onclick="delGroup(${g.id})">Delete</button>`:''}
+        </div>
+      </div>
+      <div class="gc-camps">${g.campuses.map(c=>`<span class="gcc">${c}</span>`).join('')}</div>
+      <div class="gc-meta">AM Bell: ${fmt12(g.amBell)} &nbsp;·&nbsp; PM Bell: ${fmt12(g.pmBell)} &nbsp;·&nbsp; ${g.campuses.length} campus${g.campuses.length!==1?'es':''}</div>
+      <div class="gc-ws">${g.windows.map(w=>`<span class="gcw ${w.dir==='inbound'?'gwi':w.dir==='outbound'?'gwo':'gwb'}">${w.dir==='inbound'?'🌅':w.dir==='outbound'?'🌇':'↕'} ${w.label} (${w.mins}m)</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+// ── USER MANAGEMENT (ADMIN) ────────────────────────────────────────────────
+async function loadUsers(){
+  try {
+    const res = await API.get('/api/users');
+    if(!res||!res.ok) return;
+    const data = await res.json();
+    allUsers = data.users || [];
+    renderUserList();
+  } catch(e) { console.error('Error loading users:', e); }
+}
+
+function renderUserList(){
+  const q = document.getElementById('user-search')?.value.toLowerCase()||'';
+  const filtered = allUsers.filter(u =>
+    u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
+  );
+  document.getElementById('user-count').textContent = `— ${allUsers.length} users`;
+  const adminCount = allUsers.filter(u=>u.role==='admin').length;
+  const viewerCount = allUsers.filter(u=>u.role==='viewer').length;
+
+  document.getElementById('user-list').innerHTML = filtered.map(u => `
+    <div class="user-card">
+      <div class="user-info">
+        <div class="user-avatar ${u.role==='admin'?'admin':''}">${(u.name||u.username).charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="user-name">${u.name||u.username}</div>
+          <div class="user-username">@${u.username}</div>
+        </div>
+        <span class="badge ${u.role==='admin'?'b-admin':'b-viewer'}">${u.role}</span>
+        ${!u.active?'<span class="badge b-inactive">Inactive</span>':''}
+      </div>
+      <div class="user-acts">
+        <button class="btn-secondary" style="font-size:.62rem;padding:5px 10px;" onclick="editUser('${u.id}')">Edit</button>
+        <button class="btn-secondary" style="font-size:.62rem;padding:5px 10px;" onclick="openResetPw('${u.id}','${u.name||u.username}')">Reset PW</button>
+        ${u.id !== currentUser?.id ? `<button class="btn-danger" onclick="deleteUser('${u.id}','${u.name||u.username}')">Remove</button>`:''}
+      </div>
+    </div>`).join('') || '<div class="empty-st">No users found.</div>';
+}
+
+async function saveUser(){
+  const name     = document.getElementById('u-name').value.trim();
+  const username = document.getElementById('u-username').value.trim();
+  const password = document.getElementById('u-password').value;
+  const role     = document.getElementById('u-role').value;
+
+  if(editUserId){
+    // Update existing
+    const body = { name, role, active: true };
+    const res = await API.put(`/api/users/${editUserId}`, body);
+    if(!res||!res.ok){ const d=await res.json(); toast(d.error||'Update failed.','err'); return; }
+    if(password){
+      const res2 = await API.post(`/api/users/${editUserId}/password`, { password });
+      if(!res2||!res2.ok){ toast('User updated but password reset failed.','warn'); }
+    }
+    toast('User updated.','ok');
+  } else {
+    if(!username||!password){ toast('Username and password required.','err'); return; }
+    const res = await API.post('/api/users', { name, username, password, role });
+    if(!res||!res.ok){ const d=await res.json(); toast(d.error||'Failed to create user.','err'); return; }
+    toast('User created.','ok');
+  }
+  cancelUserEdit();
+  await loadUsers();
+}
+
+function editUser(id){
+  const u = allUsers.find(u=>u.id===id); if(!u) return;
+  editUserId = id;
+  document.getElementById('u-name').value = u.name||'';
+  document.getElementById('u-username').value = u.username;
+  document.getElementById('u-username').disabled = true;
+  document.getElementById('u-password').value = '';
+  document.getElementById('u-password').placeholder = 'Leave blank to keep current password';
+  document.getElementById('u-role').value = u.role;
+  document.getElementById('user-form-title').textContent = '✏️ Edit User';
+  document.getElementById('u-save-btn').textContent = 'Update User';
+  document.getElementById('u-cx-btn').style.display = 'block';
+}
+
+function cancelUserEdit(){
+  editUserId = null;
+  document.getElementById('u-name').value='';
+  document.getElementById('u-username').value='';
+  document.getElementById('u-username').disabled=false;
+  document.getElementById('u-password').value='';
+  document.getElementById('u-password').placeholder='Temporary password';
+  document.getElementById('u-role').value='viewer';
+  document.getElementById('user-form-title').textContent='➕ Add User';
+  document.getElementById('u-save-btn').textContent='Add User';
+  document.getElementById('u-cx-btn').style.display='none';
+}
+
+async function deleteUser(id, name){
+  if(!confirm(`Remove user "${name}"? They will immediately lose access.`)) return;
+  const res = await API.del(`/api/users/${id}`);
+  if(!res||!res.ok){ const d=await res.json(); toast(d.error||'Delete failed.','err'); return; }
+  toast('User removed.','ok');
+  await loadUsers();
+}
+
+function openResetPw(id, name){
+  resetPwUserId = id;
+  document.getElementById('reset-pw-name').textContent = name;
+  document.getElementById('reset-pw-val').value = '';
+  openModal('modal-reset-pw');
+}
+
+async function doResetPassword(){
+  const pw = document.getElementById('reset-pw-val').value;
+  if(!pw){ toast('Enter a new password.','err'); return; }
+  const res = await API.post(`/api/users/${resetPwUserId}/password`, { password: pw });
+  if(!res||!res.ok){ const d=await res.json(); toast(d.error||'Reset failed.','err'); return; }
+  toast('Password reset successfully.','ok');
+  closeModal('modal-reset-pw');
+}
+
+// ── CHANGE OWN PASSWORD ────────────────────────────────────────────────────
+function openChangePw(){
+  document.getElementById('pw-current').value='';
+  document.getElementById('pw-new').value='';
+  document.getElementById('pw-confirm').value='';
+  document.getElementById('pw-err').style.display='none';
+  openModal('modal-pw');
+}
+async function changePassword(){
+  const cur  = document.getElementById('pw-current').value;
+  const nw   = document.getElementById('pw-new').value;
+  const conf = document.getElementById('pw-confirm').value;
+  const errEl= document.getElementById('pw-err');
+  errEl.style.display='none';
+  if(nw !== conf){ errEl.textContent="Passwords don't match."; errEl.style.display='block'; return; }
+  if(nw.length < 8){ errEl.textContent='Password must be at least 8 characters.'; errEl.style.display='block'; return; }
+  const res = await API.put('/api/users/me', { currentPassword: cur, newPassword: nw });
+  if(!res||!res.ok){ const d=await res.json(); errEl.textContent=d.error||'Update failed.'; errEl.style.display='block'; return; }
+  toast('Password updated.','ok');
+  closeModal('modal-pw');
+}
+
+// ── MODAL ──────────────────────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if(e.target === bg) bg.classList.remove('open'); });
+});
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+function nav(n, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('page-'+n).classList.add('on');
+  if(btn)btn.classList.add('on');
+  if(n==='dashboard'){
+    checkDashReady();
+    if(!document.getElementById('d-camp').options.length||document.getElementById('d-camp').options.length<=1)
+      popFilters();
+  }
+  if(n==='upload') showStep(currentStep||1);
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  clearTimeout(t._tid);t._tid=setTimeout(()=>t.className='toast',3500);
+}
+
+// ── TIME UTILS ─────────────────────────────────────────────────────────────
+function parseMins(s){
+  if(!s||!s.trim())return null;
+  const m=s.trim().match(/^(\d+):(\d+)(?::[\d.]+)?\s*(AM|PM)$/i);
+  if(!m)return null;
+  let h=parseInt(m[1]),mn=parseInt(m[2]);
+  const pm=m[3].toUpperCase()==='PM';
+  if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;
+  return h*60+mn;
+}
+function bellM(hhmm){if(!hhmm)return 0;const[h,m]=hhmm.split(':').map(Number);return h*60+m;}
+function fmt12(hhmm){if(!hhmm)return'—';const[h,m]=hhmm.split(':').map(Number);return`${(h%12)||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;}
+function isoDate(s){if(!s)return'';const d=new Date(s);return isNaN(d)?'':d.toISOString().slice(0,10);}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+const RT_INC=new Set(['General Ed','Special Ed']);
+function getRt(route){return rtMap[route]||'General Ed';}
+function rtBadge(rt){
+  const m={'General Ed':'b-blue','Special Ed':'b-purple','Activity':'b-orange','Transfers/Shuttles':'b-gray'};
+  return`<span class="badge ${m[rt]||'b-gray'}">${rt}</span>`;
+}
+
+function checkDashReady(){
+  const has=(raw.inbound.length>0||raw.outbound.length>0)&&groups.length>0;
+  document.getElementById('dash-nd').style.display=has?'none':'block';
+  document.getElementById('dash-c').style.display=has?'block':'none';
+  if(has)updGrpSel();
+  return has;
+}
+function updGrpSel(){
+  const sel=document.getElementById('d-grp');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All Groups</option>'+groups.map(g=>`<option value="${g.id}" ${g.id==cur?'selected':''}>${g.name}</option>`).join('');
+}
+function onGrpChange(){popFilters();}
+function onCampChange(){
+  // Repopulate routes for the selected campus, then run
+  const src=dir==='inbound'?raw.inbound:raw.outbound;
+  const ac=activeCamps();
+  const campFilter=document.getElementById('d-camp').value;
+  const scoped=src.filter(r=>ac.includes(strip(r['Campus']||'')));
+  const routeScoped=campFilter?scoped.filter(r=>strip(r['Campus']||'')===campFilter):scoped;
+  const rs=[...new Set(routeScoped.map(r=>strip(r['Route']||'')).filter(Boolean))].sort();
+  const prevRoute=document.getElementById('d-route').value;
+  document.getElementById('d-route').innerHTML='<option value="">All Routes</option>'+rs.map(r=>`<option>${r}</option>`).join('');
+  if(prevRoute&&rs.includes(prevRoute))document.getElementById('d-route').value=prevRoute;
+  runDash();
+}
+function activeGrp(){const id=parseInt(document.getElementById('d-grp')?.value);return groups.find(g=>g.id===id)||null;}
+function campBellMap(){
+  const m={};
+  groups.forEach(g=>{g.campuses.forEach(c=>{m[c]={amBell:g.amBell,pmBell:g.pmBell,windows:g.windows,groupName:g.name};});});
+  return m;
+}
+function activeCamps(){
+  const g=activeGrp();if(g)return g.campuses;
+  return[...new Set([...raw.inbound,...raw.outbound].map(r=>r['Campus']).filter(Boolean))];
+}
+function popFilters(){
+  const src=dir==='inbound'?raw.inbound:raw.outbound;
+  const ac=activeCamps();
+  const campFilter=document.getElementById('d-camp').value;
+
+  // Scope to active campuses first
+  let scoped=src.filter(r=>ac.includes(strip(r['Campus']||'')));
+
+  // Campus dropdown — all campuses in the active group
+  const cs=[...new Set(scoped.map(r=>strip(r['Campus']||'')).filter(Boolean))].sort();
+
+  // Route dropdown — if a campus is selected, only show routes for that campus
+  const routeScoped = campFilter ? scoped.filter(r=>strip(r['Campus']||'')=== campFilter) : scoped;
+  const rs=[...new Set(routeScoped.map(r=>strip(r['Route']||'')).filter(Boolean))].sort();
+
+  const ds=[...new Set(scoped.map(r=>isoDate(r['Date'])).filter(Boolean))].sort();
+  const prevCamp=document.getElementById('d-camp').value;
+  const prevRoute=document.getElementById('d-route').value;
+  document.getElementById('d-camp').innerHTML='<option value="">All Campuses</option>'+cs.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('d-route').innerHTML='<option value="">All Routes</option>'+rs.map(r=>`<option>${r}</option>`).join('');
+  if(prevCamp&&cs.includes(prevCamp))document.getElementById('d-camp').value=prevCamp;
+  if(prevRoute&&rs.includes(prevRoute))document.getElementById('d-route').value=prevRoute;
+  // Only set dates if fields are empty (first load) — never overwrite user-selected dates
+  if(ds.length&&!document.getElementById('d-from').value){
+    document.getElementById('d-from').value=ds[0];document.getElementById('d-to').value=ds[ds.length-1];
+  }
+}
+function setDir(d,btn){
+  dir=d;
+  document.getElementById('dt-in').className='dtbtn'+(d==='inbound'?' ia':'');
+  document.getElementById('dt-out').className='dtbtn'+(d==='outbound'?' oa':'');
+  // Do NOT clear dates — preserve the user's selected date range across direction switches
+  popFilters();runDash();
+}
+function compDiff(row,bell,d){
+  let e=(row['Entry Time']||'').trim();
+  if(!e)e=d==='inbound'?(row['First Unload Time']||'').trim():(row['Last Load Time']||'').trim();
+  const em=parseMins(e);if(em===null)return null;
+  return d==='inbound'?(bell-em):(em-bell);
+}
+function passWin(diff,winMins,d){
+  if(diff===null)return false;
+  // Inbound: diff = bell - entry. On time if arrived at least winMins before bell.
+  // Outbound: diff = entry - bell. On time if departed within winMins after bell.
+  return d==='inbound'?(diff>=winMins):(diff<=winMins);
+}
+function runDash(){
+  if(!checkDashReady())return;
+  const src=dir==='inbound'?raw.inbound:raw.outbound;
+  const grp=activeGrp();
+  const ac=activeCamps();
+  const cbm=grp?null:campBellMap();
+  const cf=document.getElementById('d-camp').value;
+  const rf=document.getElementById('d-rtype').value;
+  const rtf=document.getElementById('d-route').value;
+  const ff=document.getElementById('d-from').value;
+  const tf=document.getElementById('d-to').value;
+  const bellHHMM=grp?(dir==='inbound'?grp.amBell:grp.pmBell):(dir==='inbound'?'07:35':'14:40');
+  const defaultWins = dir==='inbound'
+    ? [{label:'15 Min Before Bell',mins:15,dir:'inbound'},{label:'10 Min Before Bell',mins:10,dir:'inbound'},{label:'At Bell',mins:0,dir:'both'}]
+    : [{label:'At Bell',mins:0,dir:'both'},{label:'15 Min After Bell',mins:15,dir:'outbound'},{label:'30 Min After Bell',mins:30,dir:'outbound'}];
+  const globalWins=(grp?grp.windows.filter(w=>w.dir===dir||w.dir==='both'):defaultWins)
+    .sort((a,b)=>a.mins-b.mins);
+  lastWins=globalWins;
+  let fbCnt=0;
+  dRows=src.filter(r=>{
+    const camp=strip(r['Campus']||'');
+    const route=strip(r['Route']||'');
+    if(!ac.includes(camp))return false;
+    if(cf&&camp!==cf)return false;
+    if(rtf&&route!==rtf)return false;
+    const dd=isoDate(r['Date']);
+    if(ff&&dd<ff)return false;if(tf&&dd>tf)return false;
+    const rt=getRt(route);
+    if(!RT_INC.has(rt))return false;
+    if(rf&&rt!==rf)return false;
+    return true;
+  }).map(r=>{
+    const rt=getRt(strip(r['Route']||''));
+    const fb=!(r['Entry Time']||'').trim();if(fb)fbCnt++;
+    let bell,wins;
+    if(grp){bell=bellM(bellHHMM);wins=globalWins;}
+    else{
+      const cb=cbm[strip(r['Campus']||'')];
+      if(cb){bell=bellM(dir==='inbound'?cb.amBell:cb.pmBell);wins=cb.windows.filter(w=>w.dir===dir||w.dir==='both').sort((a,b)=>a.mins-b.mins);}
+      else{bell=bellM(bellHHMM);wins=globalWins;}
+    }
+    const diff=compDiff(r,bell,dir);
+    return{...r,_campus:strip(r['Campus']||''),_route:strip(r['Route']||''),_rt:rt,_diff:diff,_wins:wins.map(w=>passWin(diff,w.mins,dir)),_fb:fb,_grp:cbm?cbm[strip(r['Campus']||'')]?.groupName||'Unassigned':'—'};
+  });
+  mkKPIs(globalWins,bellHHMM,fbCnt,grp);
+  populateWinSelect(globalWins);
+  const selWin=getSelWin(globalWins);
+  mkCharts(globalWins,selWin);
+  buildRtRows(globalWins);
+  renderRtTbl(globalWins,selWin);
+  document.getElementById('cs-sub').textContent=`— ${grp?fmt12(bellHHMM):'per group'} bell · ${selWin.label}`;
+  document.getElementById('ct-sub').textContent=`— ${selWin.label}`;
+  document.getElementById('tbl-ttl').textContent=`Route Detail — ${dRows.length.toLocaleString()} runs · ${dir==='inbound'?'Inbound':'Outbound'}${fbCnt?` · ${fbCnt} fallback times`:''}`;
+}
+// ── WINDOW SELECTOR ────────────────────────────────────────────────────────
+function populateWinSelect(wins){
+  const sel=document.getElementById('win-select');
+  if(!sel||!wins.length)return;
+  sel.innerHTML=wins.map((w,i)=>`<option value="${i}">${w.label}</option>`).join('');
+  // Windows are sorted ascending by mins (0, 10/15, 30)
+  // Inbound default → At Bell = index 0 (mins===0)
+  // Outbound default → largest window = last index
+  const defaultIdx = dir==='inbound' ? 0 : wins.length - 1;
+  sel.value=String(defaultIdx);
+  const hint=document.getElementById('win-select-hint');
+  if(hint)hint.textContent='Applies to charts and route detail table';
+}
+
+function getSelWin(wins){
+  const sel=document.getElementById('win-select');
+  const idx=sel&&sel.value!==''?parseInt(sel.value):0;
+  return wins[Math.min(idx,wins.length-1)]||wins[0]||{label:'',mins:0,dir};
+}
+
+function onWinChange(){
+  const wins=curWins();
+  const selWin=getSelWin(wins);
+  mkCharts(wins,selWin);
+  renderRtTbl(wins,selWin);
+  document.getElementById('cs-sub').textContent=`— ${selWin.label}`;
+  document.getElementById('ct-sub').textContent=`— ${selWin.label}`;
+}
+
+function mkKPIs(wins,bellHHMM,fbCnt,grp){
+  const n=dRows.length;const cols=['kg','ka','kb','ko','kp'];
+  let h=`<div class="kpi kn"><div class="kl">Total Runs</div><div class="kv">${n.toLocaleString()}</div><div class="ks">${dir} · ${grp?'bell '+fmt12(bellHHMM):'per group bell'}</div></div>`;
+  wins.forEach((w,i)=>{const ct=dRows.filter(r=>r._wins[i]).length;const pct=n?((ct/n)*100).toFixed(1):'—';
+    h+=`<div class="kpi ${cols[i%cols.length]}"><div class="kl">${w.label}</div><div class="kv">${pct}%</div><div class="ks">${ct.toLocaleString()} of ${n.toLocaleString()} runs</div></div>`;});
+  const missed=dRows.filter(r=>r._wins.length&&!r._wins[r._wins.length-1]).length;
+  h+=`<div class="kpi kr"><div class="kl">Missed All</div><div class="kv">${n?((missed/n)*100).toFixed(1):'—'}%</div><div class="ks">${missed.toLocaleString()} runs</div></div>`;
+  if(fbCnt)h+=`<div class="kpi ka"><div class="kl">Fallback Times</div><div class="kv">${fbCnt.toLocaleString()}</div><div class="ks">${dir==='inbound'?'first unload':'last load'} time used</div></div>`;
+  document.getElementById('kstrip').innerHTML=h;
+}
+const TK={color:'#6678a0',font:{family:'DM Mono',size:10}};const GR={color:'#e4eaf5'};
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function bf(p){return p>=80?'rgba(26,127,75,.8)':p>=60?'rgba(184,127,0,.8)':'rgba(184,50,50,.8)';}
+function bc(p){return p>=80?'fg_':p>=60?'fa_':'fr_';}
+function bdc(p){return p>=80?'b-gs':p>=60?'b-as':'b-rs';}
+function mkCharts(wins,selWin){
+  dc('ch-c');dc('ch-t');
+  const selWin_=selWin||wins[0]||{label:'',mins:0};
+  const selIdx=wins.indexOf(selWin_);
+  const cm={};
+  dRows.forEach(r=>{const c=r._campus||'Unknown';if(!cm[c])cm[c]={t:0,on:0};cm[c].t++;if(r._wins[selIdx])cm[c].on++;});
+  const sorted=Object.entries(cm).map(([n,v])=>({n,p:v.t?+((v.on/v.t)*100).toFixed(1):0})).sort((a,b)=>b.p-a.p);
+  charts['ch-c']=new Chart(document.getElementById('ch-c'),{type:'bar',
+    data:{labels:sorted.map(d=>d.n.length>26?d.n.slice(0,24)+'…':d.n),datasets:[{label:selWin_.label,data:sorted.map(d=>d.p),backgroundColor:sorted.map(d=>bf(d.p)),borderRadius:4}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{...TK,callback:v=>v+'%'},grid:GR,min:0,max:100},y:{ticks:{color:'#0f1e3a',font:{family:'DM Sans',size:10}},grid:GR}}}});
+  const dm={};
+  dRows.forEach(r=>{const d2=isoDate(r['Date']);if(!d2)return;if(!dm[d2])dm[d2]={t:0,on:0};dm[d2].t++;if(r._wins[selIdx])dm[d2].on++;});
+  const dl=Object.keys(dm).sort(),dp=dl.map(d2=>dm[d2].t?+((dm[d2].on/dm[d2].t)*100).toFixed(1):0);
+  const lc=dir==='inbound'?'#1a56c0':'#1a7f4b',fc=dir==='inbound'?'rgba(26,86,192,.07)':'rgba(26,127,75,.07)';
+  charts['ch-t']=new Chart(document.getElementById('ch-t'),{type:'line',
+    data:{labels:dl,datasets:[{label:selWin_.label,data:dp,borderColor:lc,backgroundColor:fc,fill:true,tension:.3,pointBackgroundColor:'#C8A217',pointBorderColor:lc,pointBorderWidth:2,pointRadius:dl.length<20?5:3}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{ticks:TK,grid:GR},y:{ticks:{...TK,callback:v=>v+'%'},grid:GR,min:0,max:100}}}});
+}
+function buildRtRows(wins){
+  const map={};
+  dRows.forEach(r=>{
+    const k=r._route||'—';
+    if(!map[k])map[k]={route:k,campus:r._campus||'—',bus:strip(r['Bus']||'—'),rt:r._rt||'General Ed',grp:r._grp||'—',t:0,ws:wins.map(()=>0),fb:0};
+    map[k].t++;if(r._fb)map[k].fb++;wins.forEach((_,i)=>{if(r._wins[i])map[k].ws[i]++;});
+  });
+  // Don't pre-compute missed here — calculate per selected window in renderPg
+  rtRows=Object.values(map).map(r=>({...r,
+    pcts:r.ws.map(w=>r.t?+((w/r.t)*100).toFixed(1):0),
+  }));
+}
+function renderRtTbl(wins,selWin){
+  const selWin_=selWin||wins[0]||{label:'',mins:0};
+  const selIdx=wins.indexOf(selWin_);
+  const showGrp=!activeGrp();
+  document.getElementById('r-hd').innerHTML=`<tr>
+    <th onclick="rs('route')">Route ↕</th>
+    <th onclick="rs('campus')">Campus ↕</th>
+    <th onclick="rs('bus')">Bus ↕</th>
+    <th onclick="rs('rt')">Run Type ↕</th>
+    ${showGrp?`<th onclick="rs('grp')">Group ↕</th>`:''}
+    <th onclick="rs('t')" style="text-align:right">Runs ↕</th>
+    <th onclick="rs('selPct')">${selWin_.label} ↕</th>
+    <th onclick="rs('mp')">Missed % ↕</th>
+    <th onclick="rs('fb')" style="text-align:right">Fallback ↕</th>
+  </tr>`;
+  // Add selPct and mp (missed %) based on selected window — not last window
+  let rows=[...rtRows].map(r=>{
+    const selPct=r.pcts[selIdx]??0;
+    const missedCt=r.t-(r.ws[selIdx]??0);
+    const mp=r.t?+((missedCt/r.t)*100).toFixed(1):0;
+    return{...r,selPct,mp,missedCt};
+  });
+  rows.sort((a,b)=>{
+    const av=a[sKey]??0, bv=b[sKey]??0;
+    return av<bv?sDir:av>bv?-sDir:0;
+  });
+  pgData=rows;pg=1;renderPg(wins,showGrp,selIdx);
+}
+function rs(k){if(sKey===k)sDir*=-1;else{sKey=k;sDir=-1;}
+  const wins=curWins();renderRtTbl(wins,getSelWin(wins));}
+function curWins(){
+  const g=activeGrp();
+  if(g) return g.windows.filter(w=>w.dir===dir||w.dir==='both').sort((a,b)=>a.mins-b.mins);
+  if(dir==='inbound') return[
+    {label:'At Bell',mins:0,dir:'both'},
+    {label:'10 Min Before Bell',mins:10,dir:'inbound'},
+    {label:'15 Min Before Bell',mins:15,dir:'inbound'},
+  ];
+  return[
+    {label:'At Bell',mins:0,dir:'both'},
+    {label:'15 Min After Bell',mins:15,dir:'outbound'},
+    {label:'30 Min After Bell',mins:30,dir:'outbound'}
+  ];
+}
+function chPg(d){const mx=Math.ceil(pgData.length/PG);pg=Math.max(1,Math.min(mx,pg+d));
+  const wins=curWins();renderPg(wins,!activeGrp(),wins.indexOf(getSelWin(wins)));}
+function renderPg(wins,showGrp,selIdx){
+  const idx=selIdx??0;
+  const st=(pg-1)*PG,sl=pgData.slice(st,st+PG);
+  const tb=document.getElementById('r-bd');
+  if(!sl.length){tb.innerHTML=`<tr class="erow"><td colspan="20">No data matches current filters.</td></tr>`;return;}
+  tb.innerHTML=sl.map(r=>{
+    const p=r.pcts[idx]??0;
+    return`<tr>
+      <td class="num">${r.route}</td><td>${r.campus}</td><td class="num">${r.bus}</td>
+      <td>${rtBadge(r.rt)}</td>${showGrp?`<td style="font-size:.75rem;color:var(--text-mid);">${r.grp}</td>`:''}
+      <td class="num" style="text-align:right">${r.t}</td>
+      <td><div class="bcell"><div class="mbar"><div class="mf ${bc(p)}" style="width:${p}%"></div></div><span class="badge ${bdc(p)}">${p}%</span></div></td>
+      <td><div class="bcell"><div class="mbar"><div class="mf fr_" style="width:${r.mp}%"></div></div><span class="badge b-rs">${r.mp}%</span></div></td>
+      <td class="num" style="text-align:right;color:${r.fb?'var(--amber)':'var(--text-muted)'};">${r.fb||'—'}</td>
+    </tr>`;
+  }).join('');
+  const tot=pgData.length,mx=Math.ceil(tot/PG);
+  document.getElementById('pg-inf').textContent=`Showing ${Math.min(st+1,tot).toLocaleString()}–${Math.min(st+PG,tot).toLocaleString()} of ${tot.toLocaleString()} routes`;
+  document.getElementById('btn-pp').disabled=pg<=1;document.getElementById('btn-pn').disabled=pg>=mx;
+}
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+function buildExportData(){
+  const wins=lastWins;
+  const grp=activeGrp();
+  const grpName=grp?grp.name:'All Groups';
+
+  // Campus Summary sheet
+  const sh=['Campus','Group','Run Type','Total Runs',...wins.map(w=>w.label+' Count'),...wins.map(w=>w.label+' %'),'Missed All','Missed %'];
+  const cm={};
+  dRows.forEach(r=>{
+    const k=(r._campus||r['Campus']||'?')+'||'+(r._rt||'General Ed');
+    if(!cm[k])cm[k]={campus:r._campus||r['Campus']||'?',grp:r._grp&&r._grp!=='—'?r._grp:grpName,rt:r._rt||'General Ed',t:0,ws:wins.map(()=>0)};
+    cm[k].t++;wins.forEach((_,i)=>{if(r._wins[i])cm[k].ws[i]++;});
+  });
+  const sr=Object.values(cm).map(r=>{
+    const pcts=r.ws.map(w=>r.t?+((w/r.t)*100).toFixed(1):0);
+    const missed=r.t-r.ws[r.ws.length-1];
+    return[r.campus,r.grp,r.rt,r.t,...r.ws,...pcts,missed,r.t?+((missed/r.t)*100).toFixed(1):0];
+  });
+
+  // Route Detail sheet
+  const dh=['Date','Campus','Group','Bus','Route','Driver','Run Type','Entry Time Used','Scheduled Time','Diff From Bell (mins)',...wins.map(w=>w.label),'Fallback Time Used'];
+  const dr=dRows.map(r=>{
+    const eu=!(r['Entry Time']||'').trim()?(dir==='inbound'?(r['First Unload Time']||''):(r['Last Load Time']||'')):r['Entry Time'];
+    const rowGrp=r._grp&&r._grp!=='—'?r._grp:grpName;
+    return[isoDate(r['Date']),r._campus||r['Campus']||'',rowGrp,strip(r['Bus']||''),r._route||r['Route']||'',strip(r['Driver']||''),r._rt||'General Ed',eu,strip(r['Scheduled Time']||''),r._diff!==null?r._diff.toFixed(1):'N/A',...wins.map((_,i)=>r._wins[i]?'Yes':'No'),r._fb?'Yes':'No'];
+  });
+  return{sh,sr,dh,dr};
+}
+function exportXLSX(){
+  if(!dRows.length){toast('Run the report first.','err');return;}
+  const{sh,sr,dh,dr}=buildExportData();
+  const wb=XLSX.utils.book_new();
+  const ws1=XLSX.utils.aoa_to_sheet([sh,...sr]);
+  const ws2=XLSX.utils.aoa_to_sheet([dh,...dr]);
+  const cw=(ws,data)=>{ws['!cols']=[...data[0]].map((_,i)=>({wch:Math.min(40,Math.max(10,...data.map(r=>String(r[i]||'').length)))}));};
+  cw(ws1,[sh,...sr]);cw(ws2,[dh,...dr]);
+  XLSX.utils.book_append_sheet(wb,ws1,'Campus Summary');
+  XLSX.utils.book_append_sheet(wb,ws2,'Route Detail');
+  const gn=activeGrp()?.name||'All Groups';
+  XLSX.writeFile(wb,`SpringISD_OnTime_${dir}_${gn.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel file downloaded.','ok');
+}
+function exportCSV(){
+  if(!dRows.length){toast('Run the report first.','err');return;}
+  const{dh,dr}=buildExportData();
+  const esc=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const lines=[dh.map(esc).join(','),...dr.map(r=>r.map(esc).join(','))];
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  const gn=activeGrp()?.name||'All Groups';
+  a.download=`SpringISD_OnTime_${dir}_${gn.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(a.href);
+  toast('CSV downloaded. Open in Google Sheets via File → Import.','ok');
+}
+</script>
+</body>
+</html>

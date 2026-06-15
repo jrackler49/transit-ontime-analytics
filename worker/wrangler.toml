@@ -1,0 +1,14 @@
+name = "transit-ontime-analytics"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "transit-analytics-data"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# Secrets (set via Cloudflare dashboard or: wrangler secret put SECRET_NAME)
+# ADMIN_SETUP_KEY - one-time key to create the first admin account
