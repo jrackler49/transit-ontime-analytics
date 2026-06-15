@@ -4,7 +4,7 @@
  */
 
 // Set this to your Worker URL after deployment
-window.API_BASE = 'https://YOUR_WORKER_URL.workers.dev';
+window.API_BASE = 'https://transit-ontime-analytics.jrackler49.workers.dev';
 
 window.Auth = {
   token() { return sessionStorage.getItem('sisd_token'); },
